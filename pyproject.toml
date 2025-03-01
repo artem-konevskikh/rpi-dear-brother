@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "emotion-lighting"
+version = "0.1.0"
+description = "Interactive lighting system based on emotions and touch"
+readme = "README.md"
+requires-python = ">=3.7"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "your.email@example.com"},
+]
+dependencies = [
+    "opencv-python>=4.5.0",
+    "fer>=22.4.0",
+    "numpy>=1.20.0",
+    "smbus2>=0.4.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "isort>=5.10.0",
+]
+
+[project.scripts]
+emotion-lighting = "emotion_lighting.main:main"
+
+[tool.black]
+line-length = 88
+target-version = ["py37", "py38", "py39", "py310"]
