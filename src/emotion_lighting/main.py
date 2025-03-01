@@ -9,7 +9,6 @@ from emotion_lighting.database import EmotionDatabase
 from emotion_lighting.led_controller import LEDController
 from emotion_lighting.emotion_tracker import EmotionTracker
 from emotion_lighting.touch_tracker import TouchTracker
-from emotion_lighting.visualization import Visualization
 from emotion_lighting.gui_visualization import DearPyGuiVisualization
 
 
@@ -25,7 +24,6 @@ class EmotionLightingApp:
         touch_bus=1,
         camera_id=0,
         db_path="emotion_data.db",
-        use_classic_ui=False,
     ):
         """Initialize the emotion lighting application
 
@@ -37,7 +35,6 @@ class EmotionLightingApp:
             touch_bus: I2C bus number
             camera_id: Camera device ID
             db_path: Path to SQLite database file
-            use_classic_ui: Use classic OpenCV UI instead of Dear PyGui
         """
         print("Initializing Emotion Lighting system...")
 
@@ -64,26 +61,11 @@ class EmotionLightingApp:
         )
         print("Emotion tracker initialized.")
 
-        # Initialize visualization based on user preference
-        if use_classic_ui:
-            self.visualization = Visualization(
-                self.emotion_tracker, self.touch_tracker, self.database
-            )
-            print("Classic OpenCV visualization initialized.")
-        else:
-            try:
-                self.visualization = DearPyGuiVisualization(
-                    self.emotion_tracker, self.touch_tracker, self.database
-                )
-                print("Dear PyGui visualization initialized.")
-            except ImportError:
-                print(
-                    "Warning: Dear PyGui not found. Falling back to classic visualization."
-                )
-                print("To use the modern UI, install Dear PyGui: pip install dearpygui")
-                self.visualization = Visualization(
-                    self.emotion_tracker, self.touch_tracker, self.database
-                )
+        # Initialize visualization
+        self.visualization = DearPyGuiVisualization(
+            self.emotion_tracker, self.touch_tracker, self.database
+        )
+        print("Visualization interface initialized.")
 
         # Set up signal handler for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -154,11 +136,6 @@ def main():
     parser.add_argument(
         "--db", type=str, default="emotion_data.db", help="Path to SQLite database file"
     )
-    parser.add_argument(
-        "--classic-ui",
-        action="store_true",
-        help="Use classic OpenCV UI instead of Dear PyGui",
-    )
 
     args = parser.parse_args()
 
@@ -170,11 +147,16 @@ def main():
         touch_bus=args.touch_bus,
         camera_id=args.camera,
         db_path=args.db,
-        use_classic_ui=args.classic_ui,
     )
 
     try:
         app.start()
+    except ImportError as e:
+        if "dearpygui" in str(e):
+            print("Error: Dear PyGui is required but not installed.")
+            print("Please install it with: pip install dearpygui")
+        else:
+            print(f"Error: {e}")
     except Exception as e:
         print(f"Error: {e}")
     finally:
