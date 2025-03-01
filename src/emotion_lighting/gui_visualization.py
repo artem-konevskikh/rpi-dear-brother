@@ -118,11 +118,31 @@ class CustomTkinterVisualization:
         self.root.mainloop()
 
     def stop(self):
-        """Stop the visualization"""
+        """Stop the visualization safely"""
         self.running = False
         if self.root:
-            self.root.quit()
+            try:
+                # Use safer shutdown sequence
+                self.root.after(0, self._safe_shutdown)
+            except Exception as e:
+                print(f"Warning during shutdown: {e}")
+
+    def _safe_shutdown(self):
+        """Safely shut down the Tkinter application"""
+        try:
+            # Cancel any scheduled callbacks
+            for after_id in self.root.tk.call("after", "info"):
+                self.root.after_cancel(after_id)
+
+            # Destroy the root window
             self.root.destroy()
+        except Exception as e:
+            print(f"Warning during safe shutdown: {e}")
+            # Force quit if normal shutdown fails
+            try:
+                self.root.quit()
+            except Exception as e:
+                print(f"Failed to quit: {e}")
 
     def _update_loop(self):
         """Background thread to update data and redraw UI"""
@@ -527,61 +547,66 @@ class CustomTkinterVisualization:
         """Draw the emotion distribution bar chart"""
         scale_x = width / self.window_width
         scale_y = height / self.window_height
-
+        
+        # Center point of the emotion tracking section
+        section_center_x = width / 4  # Left half, centered
+        
         # Draw title
         self.canvas.create_text(
-            220 * scale_x,
+            section_center_x,
             380 * scale_y,
             text="DAILY EMOTION PROFILE",
             font=("Courier", int(12 * scale_y)),
-            fill="white",
+            fill="white"
         )
-
+        
         # Get max count for scaling
-        max_count = (
-            max(self.emotion_counts.values()) if self.emotion_counts else 1
-        )  # Avoid division by zero
-
-        # Draw 6 emotion bars
+        max_count = max(self.emotion_counts.values()) if self.emotion_counts else 1  # Avoid division by zero
+        
+        # Calculate bar dimensions and positioning
         bar_width = 40 * scale_x
         bar_height = 70 * scale_y
         bar_spacing = 10 * scale_x
-        start_x = 120 * scale_x  # Adjusted to center the 6 bars
+        
+        # Calculate total width of all bars with spacing
+        total_bars_width = (len(self.ALL_EMOTIONS) * bar_width) + ((len(self.ALL_EMOTIONS) - 1) * bar_spacing)
+        
+        # Calculate starting X position to center the bars in the section
+        start_x = section_center_x - (total_bars_width / 2)
         y = 400 * scale_y
-
+        
         for i, emotion in enumerate(self.ALL_EMOTIONS):
             x = start_x + i * (bar_width + bar_spacing)
-
+            
             # Get count for this emotion (0 if not present)
             count = self.emotion_counts.get(emotion, 0)
-
+            
             # Calculate height proportion
             height_proportion = count / max_count if max_count > 0 else 0
             bar_value_height = int(bar_height * height_proportion)
-
+            
             # Draw bar outline
             self.canvas.create_rectangle(
-                x, y, x + bar_width, y + bar_height, outline="#444444", fill=""
+                x, y,
+                x + bar_width, y + bar_height,
+                outline="#444444", fill=""
             )
-
+            
             # Draw filled portion of bar
             if bar_value_height > 0:
                 self.canvas.create_rectangle(
-                    x,
-                    y + bar_height - bar_value_height,
-                    x + bar_width,
-                    y + bar_height,
-                    outline="#333333",
-                    fill="#333333",
+                    x, y + bar_height - bar_value_height,
+                    x + bar_width, y + bar_height,
+                    outline="#333333", fill="#333333"
                 )
-
+            
             # Draw emotion label
             self.canvas.create_text(
-                x + bar_width / 2,
+                x + bar_width/2,
                 y + bar_height + 15 * scale_y,
                 text=emotion[:3].upper(),
                 font=("Courier", int(10 * scale_y)),
-                fill="white",
+                fill="white"
             )
 
     def _draw_touch_metrics(self, width, height):

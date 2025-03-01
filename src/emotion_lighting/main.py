@@ -1,7 +1,7 @@
 import time
 import argparse
 import signal
-import sys
+import threading
 
 from emotion_lighting.led_strip import LedStrip
 from emotion_lighting.mpr121_touch_sensor import MPR121TouchSensor
@@ -89,25 +89,62 @@ class EmotionLightingApp:
     def stop(self):
         """Stop the emotion lighting system"""
         print("\nShutting down Emotion Lighting system...")
+        
+        # First set running state to false for all components
+        self.running = False
+        
+        try:
+            # Stop visualization first - now with timeout
+            print("Stopping visualization...")
+            
+            visualization_thread = threading.Thread(target=self._stop_visualization_with_timeout)
+            visualization_thread.daemon = True
+            visualization_thread.start()
+            visualization_thread.join(timeout=3.0)  # Give it 3 seconds max
+            
+            # Stop trackers
+            print("Stopping trackers...")
+            if hasattr(self, 'emotion_tracker'):
+                self.emotion_tracker.stop()
+            if hasattr(self, 'touch_tracker'):
+                self.touch_tracker.stop()
+            
+            # Fade out LEDs
+            print("Turning off LEDs...")
+            if hasattr(self, 'led_controller'):
+                try:
+                    self.led_controller.fade_to_standby(1.0)
+                    time.sleep(0.5)
+                    self.led_controller.clear()
+                except Exception as e:
+                    print(f"Warning during LED shutdown: {e}")
+            
+            print("Shutdown complete.")
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+            # Force LED strip off as a last resort
+            if hasattr(self, 'led_strip'):
+                try:
+                    self.led_strip.clear()
+                except Exception as e:
+                    print(f"Failed to clear LED strip: {e}")
 
-        # Stop visualization first
-        self.visualization.stop()
+    def _stop_visualization_with_timeout(self):
+        """Stop visualization with timeout to prevent hanging"""
+        try:
+            # Using a shorter timeout here as it's already wrapped in a thread
+            self.visualization.stop()
+        except Exception as e:
+            print(f"Error stopping visualization: {e}")
 
-        # Stop trackers
-        self.emotion_tracker.stop()
-        self.touch_tracker.stop()
-
-        # Fade out LEDs
-        self.led_controller.fade_to_standby(2.0)
-        time.sleep(0.5)
-        self.led_controller.clear()
-
-        print("Shutdown complete.")
-
+    # Update to signal handler for clean exit
     def _signal_handler(self, signum, frame):
-        """Handle termination signals"""
+        """Handle termination signals with clean exit"""
+        print(f"\nReceived signal {signum}, shutting down...")
         self.stop()
-        sys.exit(0)
+        # Use os._exit instead of sys.exit to force exit if needed
+        import os
+        os._exit(0)
 
 
 def main():
