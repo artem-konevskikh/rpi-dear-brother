@@ -9,7 +9,7 @@ from emotion_lighting.database import EmotionDatabase
 from emotion_lighting.led_controller import LEDController
 from emotion_lighting.emotion_tracker import EmotionTracker
 from emotion_lighting.touch_tracker import TouchTracker
-from emotion_lighting.gui_visualization import DearPyGuiVisualization
+from emotion_lighting.gui_visualization import CustomTkinterVisualization
 
 
 class EmotionLightingApp:
@@ -62,7 +62,7 @@ class EmotionLightingApp:
         print("Emotion tracker initialized.")
 
         # Initialize visualization
-        self.visualization = DearPyGuiVisualization(
+        self.visualization = CustomTkinterVisualization(
             self.emotion_tracker, self.touch_tracker, self.database
         )
         print("Visualization interface initialized.")
@@ -152,9 +152,9 @@ def main():
     try:
         app.start()
     except ImportError as e:
-        if "dearpygui" in str(e):
-            print("Error: Dear PyGui is required but not installed.")
-            print("Please install it with: pip install dearpygui")
+        if "customtkinter" in str(e):
+            print("Error: CustomTkinter is required but not installed.")
+            print("Please install it with: pip install customtkinter")
         else:
             print(f"Error: {e}")
     except Exception as e:

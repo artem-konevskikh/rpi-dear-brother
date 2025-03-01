@@ -17,7 +17,7 @@ dependencies = [
     "setuptools>=75.8.0",
     "pi5neo>=1.0.5",
     "moviepy==1.0.3",
-    "dearpygui>=2.0.0",
+    "customtkinter>=5.2.2",
 ]
 
 [dependency-groups]
