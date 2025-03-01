@@ -1,34 +1,36 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "emotion-lighting"
+name = "dear-brother"
 version = "0.1.0"
 description = "Interactive lighting system based on emotions and touch"
 readme = "README.md"
-requires-python = ">=3.7"
-license = {text = "MIT"}
+requires-python = ">=3.9"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Artem Konevskikh", email = "artem.konevskih@gmail.com"},
 ]
 dependencies = [
-    "opencv-python>=4.5.0",
-    "fer>=22.4.0",
-    "numpy>=1.20.0",
-    "smbus2>=0.4.1",
+    "opencv-python>=4.11.0.86",
+    "fer>=22.5.1",
+    "keras>=3.8.0",
+    "tensorflow>=2.18.0",
+    "numpy>=1.26.4",
+    "smbus2>=0.5.0",
+    "setuptools>=75.8.0",
+    "pi5neo>=1.0.5",
+    "moviepy==1.0.3",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.0.0",
-    "black>=23.0.0",
-    "isort>=5.10.0",
+    "pytest>=8.3.4",
+    "ruff>=0.9.9",
 ]
 
 [project.scripts]
 emotion-lighting = "emotion_lighting.main:main"
 
-[tool.black]
-line-length = 88
-target-version = ["py37", "py38", "py39", "py310"]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/emotion_lighting"]

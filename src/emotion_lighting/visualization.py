@@ -427,7 +427,7 @@ class Visualization:
             canvas: Canvas to draw on
         """
         # Get touch statistics
-        touch_stats = self.touch_tracker.get_statistics()
+        # touch_stats = self.touch_tracker.get_statistics()
 
         # Get daily stats
         stats = self.database.get_daily_stats()
