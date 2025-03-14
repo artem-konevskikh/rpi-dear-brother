@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMOTION LIGHTING SYSTEM</title>
+
+    <!-- External CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link href="/static/style.css" rel="stylesheet">
+</head>
+
+<body>
+    <div class="grid-container">
+        <!-- Header -->
+        <div class="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-4">
+            <h1 class="text-xl mb-2">EMOTION LIGHTING SYSTEM</h1>
+            <div class="bg-gray-800 h-px w-3/4"></div>
+        </div>
+
+        <!-- Current Emotion Section -->
+        <div class="flex flex-col">
+            <div class="section-title mb-4">
+                CURRENT EMOTION
+            </div>
+            <div class="flex-grow flex flex-col items-center justify-center p-4">
+                <div id="emotion-face" class="mb-4">
+                    <!-- SVG face will be inserted here via JavaScript -->
+                </div>
+                <div id="emotion-name" class="text-lg uppercase">neutral</div>
+            </div>
+        </div>
+
+        <!-- Touch Data Section -->
+        <div class="flex flex-col">
+            <div class="section-title mb-4">
+                INTERACTION DATA
+            </div>
+            <div class="flex-grow flex flex-col items-center justify-center p-4">
+                <div id="touch-container" class="touch-hexagon">
+                    <div class="text-sm mb-2">TOUCHES</div>
+                    <div id="touch-count" class="text-3xl">0</div>
+                    <div class="text-xs text-gray-400 mt-2">TODAY</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emotion Tracking Section -->
+        <div class="flex flex-col">
+            <div class="section-title mb-4">
+                EMOTION TRACKING
+            </div>
+            <div class="flex-grow p-4">
+                <div class="text-center mb-4">DAILY EMOTION PROFILE</div>
+                <div class="chart-container">
+                    <canvas id="emotion-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- System Status Section -->
+        <div class="flex flex-col">
+            <div class="section-title mb-4">
+                SYSTEM STATUS
+            </div>
+            <div class="flex-grow p-4">
+                <div class="text-center mb-4">TOTAL STATISTICS</div>
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <div class="text-gray-400 text-right">EMOTIONS DETECTED:</div>
+                    <div id="total-emotions" class="text-white">0</div>
+
+                    <div class="text-gray-400 text-right">DOMINANT EMOTION:</div>
+                    <div id="dominant-emotion" class="text-white">neutral</div>
+
+                    <div class="text-gray-400 text-right">TOTAL TOUCHES:</div>
+                    <div id="total-touches" class="text-white">0</div>
+
+                    <div class="text-gray-400 text-right">AVG TOUCH TIME:</div>
+                    <div id="total-avg-duration" class="text-white">0.0s</div>
+
+                    <div class="text-gray-400 text-right">ALL-TIME TOUCH:</div>
+                    <div id="total-touch-duration" class="text-white">0.0s</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="col-span-1 md:col-span-2 flex justify-center items-center text-sm text-gray-500 py-4">
+            <div id="system-time">SYS: 2025-03-10 | 12:00:00</div>
+        </div>
+    </div>
+
+    <!-- External JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Custom JavaScript -->
+    <script src="/static/script.js"></script>
+</body>
+
+</html>

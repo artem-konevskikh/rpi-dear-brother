@@ -18,10 +18,18 @@ class EmotionDatabase:
         self.lock = threading.Lock()
         self._create_tables()
 
+    def _get_connection(self):
+        """Get a database connection
+
+        Returns:
+            sqlite3.Connection: Database connection
+        """
+        return sqlite3.connect(self.db_path)
+
     def _create_tables(self):
         """Create database tables if they don't exist"""
         with self.lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             # Emotion events table
@@ -70,7 +78,7 @@ class EmotionDatabase:
             duration: Duration in seconds
         """
         with self.lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             timestamp = time.time()
@@ -90,7 +98,7 @@ class EmotionDatabase:
             duration: Duration in seconds
         """
         with self.lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             timestamp = time.time()
@@ -107,7 +115,7 @@ class EmotionDatabase:
         today = datetime.datetime.now().strftime("%Y-%m-%d")
 
         with self.lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             # Get today's timestamp range
@@ -182,7 +190,7 @@ class EmotionDatabase:
             date = datetime.datetime.now().strftime("%Y-%m-%d")
 
         with self.lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             cursor.execute("SELECT * FROM daily_stats WHERE date = ?", (date,))
@@ -231,7 +239,7 @@ class EmotionDatabase:
         stats_list = []
 
         with self.lock:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_connection()
             cursor = conn.cursor()
 
             # Calculate date range
@@ -277,3 +285,57 @@ class EmotionDatabase:
             conn.close()
 
             return stats_list
+
+    def get_total_stats(self):
+        """Get total (all-time) statistics
+
+        Returns:
+            dict: Total statistics
+        """
+        with self.lock:
+            conn = self._get_connection()
+            cursor = conn.cursor()
+
+            # Get emotion data
+            cursor.execute("SELECT COUNT(*) FROM emotion_events")
+            total_emotions = cursor.fetchone()[0]
+
+            cursor.execute(
+                "SELECT emotion, COUNT(*) FROM emotion_events GROUP BY emotion"
+            )
+            emotion_data = cursor.fetchall()
+
+            emotion_counts = {emotion: count for emotion, count in emotion_data}
+
+            # Find dominant emotion
+            dominant_emotion = "neutral"
+            max_count = 0
+            for emotion, count in emotion_counts.items():
+                if count > max_count:
+                    max_count = count
+                    dominant_emotion = emotion
+
+            # Get touch data
+            cursor.execute("SELECT COUNT(*) FROM touch_events")
+            total_touches = cursor.fetchone()[0]
+
+            cursor.execute("SELECT AVG(duration) FROM touch_events")
+            avg_touch_duration = cursor.fetchone()[0] or 0
+
+            cursor.execute("SELECT MAX(duration) FROM touch_events")
+            max_touch_duration = cursor.fetchone()[0] or 0
+
+            cursor.execute("SELECT SUM(duration) FROM touch_events")
+            total_touch_duration = cursor.fetchone()[0] or 0
+
+            conn.close()
+
+            return {
+                "total_emotions": total_emotions,
+                "dominant_emotion": dominant_emotion,
+                "emotion_counts": emotion_counts,
+                "total_touches": total_touches,
+                "avg_touch_duration": avg_touch_duration,
+                "max_touch_duration": max_touch_duration,
+                "total_touch_duration": total_touch_duration,
+            }

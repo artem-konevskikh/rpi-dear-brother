@@ -1,0 +1,76 @@
+body {
+    background-color: #080808;
+    color: white;
+    font-family: 'Courier New', monospace;
+}
+
+.hexagon-border {
+    clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+    background-color: transparent;
+    border: 2px solid #404040;
+    padding: 10px;
+}
+
+.section-title {
+    border: 1px solid #555555;
+    padding: 8px 24px;
+    text-align: center;
+}
+
+.grid-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 1rem;
+    padding: 1rem;
+    height: calc(100vh - 2rem);
+}
+
+@media (min-width: 768px) {
+    .grid-container {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto 1fr 1fr auto;
+    }
+}
+
+/* Chart styling */
+.chart-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+/* Touch hexagon */
+.touch-hexagon {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    border: 2px solid #666666;
+    background-color: transparent;
+}
+
+/* Blinking effect for active touches */
+@keyframes blink {
+    0% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.3;
+    }
+}
+
+.touch-active {
+    animation: blink 1.5s infinite;
+    background-color: #333333;
+}
