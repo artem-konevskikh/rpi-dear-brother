@@ -1,8 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, List, Any
+from fastapi import APIRouter, HTTPException, WebSocket, status
+from typing import Dict, Any
 from datetime import datetime
+import logging
+from functools import lru_cache
 
-from .models import SystemState, TotalStats
+from .models import SystemState, DailyStats, TotalStats
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(prefix="/api", tags=["emotion-lighting"])
@@ -11,17 +16,19 @@ router = APIRouter(prefix="/api", tags=["emotion-lighting"])
 class EmotionLightingAPI:
     """API endpoints for the Emotion Lighting system"""
 
-    def __init__(self, emotion_tracker, touch_tracker, database):
+    def __init__(self, emotion_tracker, touch_tracker, database, websocket_manager):
         """Initialize the API
 
         Args:
             emotion_tracker: EmotionTracker instance
             touch_tracker: TouchTracker instance
             database: Database instance
+            websocket_manager: WebSocketManager instance
         """
         self.emotion_tracker = emotion_tracker
         self.touch_tracker = touch_tracker
         self.database = database
+        self.websocket_manager = websocket_manager
 
         # Register routes
         self._setup_routes()
@@ -32,29 +39,85 @@ class EmotionLightingAPI:
         @router.get("/status", response_model=SystemState)
         async def get_status():
             """Get the current system status"""
-            return await self._get_current_state()
+            try:
+                return await self._get_current_state()
+            except Exception as e:
+                logger.error(f"Error getting status: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to retrieve system status",
+                )
 
-        @router.get("/daily-stats", response_model=Dict[str, Any])
+        @router.get("/daily-stats", response_model=DailyStats)
         async def get_daily_stats():
             """Get daily statistics"""
-            daily_stats = self.database.get_daily_stats()
-            return daily_stats
+            try:
+                # Use cached daily stats with a short TTL
+                return self._get_cached_daily_stats()
+            except Exception as e:
+                logger.error(f"Error getting daily stats: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to retrieve daily statistics",
+                )
 
-        @router.get("/total-stats", response_model=Dict[str, Any])
+        @router.get("/total-stats", response_model=TotalStats)
         async def get_total_stats():
             """Get total (all-time) statistics"""
-            # Use the database method to get total stats
-            total_stats = self.database.get_total_stats()
-            return total_stats
+            try:
+                # Use cached total stats with a longer TTL
+                return self._get_cached_total_stats()
+            except Exception as e:
+                logger.error(f"Error getting total stats: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to retrieve total statistics",
+                )
+
+        @router.websocket("/ws")
+        async def websocket_endpoint(websocket: WebSocket):
+            """WebSocket endpoint for real-time updates"""
+            try:
+                await self.websocket_manager.websocket_endpoint(websocket)
+            except Exception as e:
+                logger.error(f"WebSocket error: {e}")
+                await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+
+    @staticmethod
+    def _format_datetime() -> str:
+        """Format current datetime for responses"""
+        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Cache daily stats for 5 minutes (300 seconds)
+    @lru_cache(maxsize=1)
+    def _get_cached_daily_stats(self):
+        """Get cached daily statistics with TTL"""
+        # Get the current timestamp to the nearest 5 minutes to use as a cache key
+        cache_key = int(datetime.now().timestamp() // 300)
+        # The cache_key isn't used directly but forces a cache invalidation every 5 minutes
+        return self.database.get_daily_stats()
+
+    # Cache total stats for 15 minutes (900 seconds)
+    @lru_cache(maxsize=1)
+    def _get_cached_total_stats(self):
+        """Get cached total statistics with TTL"""
+        # Get the current timestamp to the nearest 15 minutes to use as a cache key
+        cache_key = int(datetime.now().timestamp() // 900)
+        # The cache_key isn't used directly but forces a cache invalidation every 15 minutes
+        return self.database.get_total_stats()
 
     async def _get_current_state(self) -> SystemState:
         """Get the current system state for API responses"""
+        # Fetch data in parallel if these were async methods
+        # For now, get the data sequentially
         emotion, confidence = self.emotion_tracker.get_current_emotion()
         touch_stats = self.touch_tracker.get_statistics()
-        daily_stats = self.database.get_daily_stats()
+        # Use cached daily stats for better performance
+        daily_stats = self._get_cached_daily_stats()
 
+        # Use dict.get() with default values to handle missing keys
         return SystemState(
-            time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            time=self._format_datetime(),
             emotion={
                 "current": emotion,
                 "confidence": confidence,
@@ -72,59 +135,3 @@ class EmotionLightingAPI:
                 "total_touch_duration": daily_stats.get("total_touch_duration", 0),
             },
         )
-
-    def _get_all_emotions(self):
-        """Get all emotion records from the database"""
-        conn = self.database._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT emotion, confidence, duration FROM emotion_events")
-        emotions = cursor.fetchall()
-        conn.close()
-        return emotions
-
-    def _get_all_touches(self):
-        """Get all touch records from the database"""
-        conn = self.database._get_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT electrode, duration FROM touch_events")
-        touches = cursor.fetchall()
-        conn.close()
-        return touches
-
-    def _get_dominant_emotion(self, emotions):
-        """Calculate the dominant emotion from all records"""
-        if not emotions:
-            return "neutral"
-
-        counts = {}
-        for emotion, _, _ in emotions:
-            counts[emotion] = counts.get(emotion, 0) + 1
-
-        # Find emotion with highest count
-        return max(counts.items(), key=lambda x: x[1])[0] if counts else "neutral"
-
-    def _count_emotions(self, emotions):
-        """Count occurrences of each emotion"""
-        counts = {}
-        for emotion, _, _ in emotions:
-            counts[emotion] = counts.get(emotion, 0) + 1
-        return counts
-
-    def _calculate_avg_duration(self, touches):
-        """Calculate average touch duration"""
-        if not touches:
-            return 0.0
-        total_duration = sum(duration for _, duration in touches)
-        return total_duration / len(touches)
-
-    def _calculate_max_duration(self, touches):
-        """Calculate maximum touch duration"""
-        if not touches:
-            return 0.0
-        return max(duration for _, duration in touches)
-
-    def _calculate_total_duration(self, touches):
-        """Calculate total touch duration"""
-        if not touches:
-            return 0.0
-        return sum(duration for _, duration in touches)

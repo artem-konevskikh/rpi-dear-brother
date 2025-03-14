@@ -1,15 +1,37 @@
 import time
 import argparse
 import signal
-import threading
+import os
+import logging
 
-from emotion_lighting.led_strip import LedStrip
-from emotion_lighting.mpr121_touch_sensor import MPR121TouchSensor
-from emotion_lighting.database import EmotionDatabase
-from emotion_lighting.led_controller import LEDController
-from emotion_lighting.emotion_tracker import EmotionTracker
-from emotion_lighting.touch_tracker import TouchTracker
-from emotion_lighting.gui_visualization import CustomTkinterVisualization
+# Configure basic logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    datefmt="%H:%M:%S",
+)
+logger = logging.getLogger("emotion_lighting.main")
+
+
+# Lazy imports to reduce startup time and memory usage
+def import_components():
+    from emotion_lighting.led_strip import LedStrip
+    from emotion_lighting.mpr121_touch_sensor import MPR121TouchSensor
+    from emotion_lighting.database import EmotionDatabase
+    from emotion_lighting.led_controller import LEDController
+    from emotion_lighting.emotion_tracker import EmotionTracker
+    from emotion_lighting.touch_tracker import TouchTracker
+    from emotion_lighting.web_server import EmotionWebServer
+
+    return {
+        "LedStrip": LedStrip,
+        "MPR121TouchSensor": MPR121TouchSensor,
+        "EmotionDatabase": EmotionDatabase,
+        "LEDController": LEDController,
+        "EmotionTracker": EmotionTracker,
+        "TouchTracker": TouchTracker,
+        "EmotionWebServer": EmotionWebServer,
+    }
 
 
 class EmotionLightingApp:
@@ -25,179 +47,197 @@ class EmotionLightingApp:
         camera_id=0,
         db_path="emotion_data.db",
     ):
-        """Initialize the emotion lighting application
+        """Initialize the emotion lighting application"""
+        logger.info("Initializing Emotion Lighting system...")
 
-        Args:
-            led_device: SPI device for LED strip
-            led_count: Number of LEDs in the strip
-            led_freq: LED strip frequency
-            touch_address: I2C address of MPR121
-            touch_bus: I2C bus number
-            camera_id: Camera device ID
-            db_path: Path to SQLite database file
-        """
-        print("Initializing Emotion Lighting system...")
+        # Import components only when needed
+        components = import_components()
 
-        # Initialize components
-        self.database = EmotionDatabase(db_path)
-        print("Database initialized.")
+        # Initialize components with error handling
+        try:
+            # Database should be initialized first
+            self.database = components["EmotionDatabase"](db_path)
+            logger.info("Database initialized.")
 
-        self.led_strip = LedStrip(led_device, led_count, led_freq)
-        print("LED strip initialized.")
+            # Initialize LED components
+            self.led_strip = components["LedStrip"](led_device, led_count, led_freq)
+            logger.info("LED strip initialized.")
 
-        self.led_controller = LEDController(self.led_strip)
-        print("LED controller initialized.")
+            self.led_controller = components["LEDController"](self.led_strip)
+            logger.info("LED controller initialized.")
 
-        self.touch_sensor = MPR121TouchSensor(touch_address, touch_bus)
-        print("Touch sensor initialized.")
+            # Initialize sensors
+            self.touch_sensor = components["MPR121TouchSensor"](
+                touch_address, touch_bus
+            )
+            logger.info("Touch sensor initialized.")
 
-        self.touch_tracker = TouchTracker(
-            self.database, self.led_controller, self.touch_sensor
-        )
-        print("Touch tracker initialized.")
+            # Initialize trackers
+            self.touch_tracker = components["TouchTracker"](
+                self.database, self.led_controller, self.touch_sensor
+            )
+            logger.info("Touch tracker initialized.")
 
-        self.emotion_tracker = EmotionTracker(
-            self.database, self.led_controller, camera_id
-        )
-        print("Emotion tracker initialized.")
+            self.emotion_tracker = components["EmotionTracker"](
+                self.database, self.led_controller, camera_id
+            )
+            logger.info("Emotion tracker initialized.")
 
-        # Initialize visualization
-        self.visualization = CustomTkinterVisualization(
-            self.emotion_tracker, self.touch_tracker, self.database
-        )
-        print("Visualization interface initialized.")
+            # Initialize web server
+            self.web_server = components["EmotionWebServer"](
+                self.emotion_tracker, self.touch_tracker, self.database
+            )
+            logger.info("Web server initialized.")
 
-        # Set up signal handler for graceful shutdown
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+            # Setup signal handlers after all components are ready
+            signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGTERM, self._signal_handler)
 
-        print("Emotion Lighting system ready.")
+            self.running = False
+            logger.info("Emotion Lighting system ready.")
+
+        except Exception as e:
+            logger.error(f"Initialization error: {e}")
+            # Clean up any resources that were initialized
+            self.stop()
+            raise
 
     def start(self):
         """Start the emotion lighting system"""
-        # Start LED controller with default values
-        self.led_controller.set_emotion_color("neutral")
-        self.led_controller.set_intensity(0.5)
+        if self.running:
+            return
 
-        # Start trackers
-        self.touch_tracker.start()
-        self.emotion_tracker.start()
+        self.running = True
 
-        # Start visualization (blocks until closed)
-        self.visualization.start()
+        # Set initial LED state
+        try:
+            self.led_controller.set_emotion_color("neutral")
+            self.led_controller.set_intensity(0.5)
+        except Exception as e:
+            logger.error(f"Error setting initial LED state: {e}")
+
+        # Start components in order
+        try:
+            # Start trackers first
+            self.touch_tracker.start()
+            self.emotion_tracker.start()
+
+            # Start web server last
+            self.web_server.start()
+        except Exception as e:
+            logger.error(f"Error starting components: {e}")
+            self.stop()
+            raise
+
+        # Main loop - keep as efficient as possible
+        try:
+            while self.running:
+                # Sleep efficiently to reduce CPU usage
+                time.sleep(1)
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
+            self.stop()
 
     def stop(self):
         """Stop the emotion lighting system"""
-        print("\nShutting down Emotion Lighting system...")
-        
-        # First set running state to false for all components
+        if not hasattr(self, "running") or not self.running:
+            return
+
+        logger.info("Shutting down Emotion Lighting system...")
         self.running = False
-        
+
+        # Stop components in reverse order of initialization
         try:
-            # Stop visualization first - now with timeout
-            print("Stopping visualization...")
-            
-            visualization_thread = threading.Thread(target=self._stop_visualization_with_timeout)
-            visualization_thread.daemon = True
-            visualization_thread.start()
-            visualization_thread.join(timeout=3.0)  # Give it 3 seconds max
-            
-            # Stop trackers
-            print("Stopping trackers...")
-            if hasattr(self, 'emotion_tracker'):
+            # Web server first
+            logger.info("Stopping web server...")
+            if hasattr(self, "web_server"):
+                self.web_server.stop()
+
+            # Trackers next
+            logger.info("Stopping trackers...")
+            if hasattr(self, "emotion_tracker"):
                 self.emotion_tracker.stop()
-            if hasattr(self, 'touch_tracker'):
+            if hasattr(self, "touch_tracker"):
                 self.touch_tracker.stop()
-            
-            # Fade out LEDs
-            print("Turning off LEDs...")
-            if hasattr(self, 'led_controller'):
+
+            # LEDs last
+            logger.info("Turning off LEDs...")
+            if hasattr(self, "led_controller"):
                 try:
-                    self.led_controller.fade_to_standby(1.0)
-                    time.sleep(0.5)
+                    self.led_controller.fade_to_standby(0.5)  # Faster fade for shutdown
+                    time.sleep(0.3)  # Reduced sleep time
                     self.led_controller.clear()
                 except Exception as e:
-                    print(f"Warning during LED shutdown: {e}")
-            
-            print("Shutdown complete.")
+                    logger.warning(f"LED shutdown warning: {e}")
+                    # Direct attempt if fade fails
+                    if hasattr(self, "led_strip"):
+                        self.led_strip.clear()
+
+            logger.info("Shutdown complete.")
         except Exception as e:
-            print(f"Error during shutdown: {e}")
-            # Force LED strip off as a last resort
-            if hasattr(self, 'led_strip'):
+            logger.error(f"Error during shutdown: {e}")
+            # Last resort - force LED strip off
+            if hasattr(self, "led_strip"):
                 try:
                     self.led_strip.clear()
-                except Exception as e:
-                    print(f"Failed to clear LED strip: {e}")
+                except Exception as e2:
+                    logger.error(f"Failed to clear LED strip: {e2}")
 
-    def _stop_visualization_with_timeout(self):
-        """Stop visualization with timeout to prevent hanging"""
-        try:
-            # Using a shorter timeout here as it's already wrapped in a thread
-            self.visualization.stop()
-        except Exception as e:
-            print(f"Error stopping visualization: {e}")
-
-    # Update to signal handler for clean exit
     def _signal_handler(self, signum, frame):
         """Handle termination signals with clean exit"""
-        print(f"\nReceived signal {signum}, shutting down...")
+        logger.info(f"Received signal {signum}, shutting down...")
         self.stop()
-        # Use os._exit instead of sys.exit to force exit if needed
-        import os
+        # Force exit after clean shutdown attempt
         os._exit(0)
 
 
 def main():
     """Entry point for the application"""
+    # Use fewer arguments to simplify startup
     parser = argparse.ArgumentParser(description="Emotion Interactive Lighting System")
     parser.add_argument(
-        "--led-device",
-        type=str,
-        default="/dev/spidev0.0",
-        help="SPI device for LED strip",
+        "--led-device", type=str, default="/dev/spidev0.0", help="SPI device for LEDs"
     )
-    parser.add_argument(
-        "--led-count", type=int, default=30, help="Number of LEDs in the strip"
-    )
-    parser.add_argument("--led-freq", type=int, default=800, help="LED strip frequency")
-    parser.add_argument(
-        "--touch-address",
-        type=int,
-        default=0x5A,
-        help="I2C address of MPR121 (default: 0x5A)",
-    )
-    parser.add_argument(
-        "--touch-bus", type=int, default=1, help="I2C bus number (default: 1)"
-    )
+    parser.add_argument("--led-count", type=int, default=30, help="Number of LEDs")
+    parser.add_argument("--led-freq", type=int, default=800, help="LED frequency")
+    parser.add_argument("--touch-address", type=int, default=0x5A, help="I2C address")
+    parser.add_argument("--touch-bus", type=int, default=1, help="I2C bus number")
     parser.add_argument("--camera", type=int, default=0, help="Camera device ID")
     parser.add_argument(
-        "--db", type=str, default="emotion_data.db", help="Path to SQLite database file"
+        "--db", type=str, default="emotion_data.db", help="Database path"
     )
 
     args = parser.parse_args()
 
-    app = EmotionLightingApp(
-        led_device=args.led_device,
-        led_count=args.led_count,
-        led_freq=args.led_freq,
-        touch_address=args.touch_address,
-        touch_bus=args.touch_bus,
-        camera_id=args.camera,
-        db_path=args.db,
-    )
-
+    # Create and run the application with error handling
+    app = None
     try:
+        # Initialize app
+        app = EmotionLightingApp(
+            led_device=args.led_device,
+            led_count=args.led_count,
+            led_freq=args.led_freq,
+            touch_address=args.touch_address,
+            touch_bus=args.touch_bus,
+            camera_id=args.camera,
+            db_path=args.db,
+        )
+
+        # Start the app
         app.start()
     except ImportError as e:
+        logger.error(f"Import error: {e}")
         if "customtkinter" in str(e):
-            print("Error: CustomTkinter is required but not installed.")
-            print("Please install it with: pip install customtkinter")
-        else:
-            print(f"Error: {e}")
+            logger.error("CustomTkinter is required but not installed.")
+            logger.error("Please install it with: pip install customtkinter")
+    except KeyboardInterrupt:
+        logger.info("Application interrupted by user.")
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Application error: {e}", exc_info=True)
     finally:
-        app.stop()
+        # Clean shutdown
+        if app:
+            app.stop()
 
 
 if __name__ == "__main__":

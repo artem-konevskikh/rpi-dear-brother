@@ -3,6 +3,7 @@ import time
 import datetime
 import threading
 from collections import Counter
+import ast
 
 
 class EmotionDatabase:
@@ -26,10 +27,27 @@ class EmotionDatabase:
         """
         return sqlite3.connect(self.db_path)
 
+    def _get_connection_context(self):
+        """Get a database connection as a context manager"""
+        class ConnectionContext:
+            def __init__(self, db_path):
+                self.db_path = db_path
+                self.conn = None
+                
+            def __enter__(self):
+                self.conn = sqlite3.connect(self.db_path)
+                return self.conn
+                
+            def __exit__(self, exc_type, exc_val, exc_tb):
+                if self.conn:
+                    self.conn.commit()
+                    self.conn.close()
+                    
+        return ConnectionContext(self.db_path)
+
     def _create_tables(self):
         """Create database tables if they don't exist"""
-        with self.lock:
-            conn = self._get_connection()
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
 
             # Emotion events table
@@ -66,8 +84,10 @@ class EmotionDatabase:
             )
             """)
 
-            conn.commit()
-            conn.close()
+            # Create indexes for faster queries
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_emotion_events_timestamp ON emotion_events(timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_touch_events_timestamp ON touch_events(timestamp)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_emotion_events_emotion ON emotion_events(emotion)")
 
     def log_emotion(self, emotion, confidence, duration):
         """Log an emotion event to the database
@@ -77,18 +97,14 @@ class EmotionDatabase:
             confidence: Confidence level (0-1)
             duration: Duration in seconds
         """
-        with self.lock:
-            conn = self._get_connection()
+        timestamp = time.time()
+        
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
-
-            timestamp = time.time()
             cursor.execute(
                 "INSERT INTO emotion_events (timestamp, emotion, confidence, duration) VALUES (?, ?, ?, ?)",
                 (timestamp, emotion, confidence, duration),
             )
-
-            conn.commit()
-            conn.close()
 
     def log_touch(self, electrode, duration):
         """Log a touch event to the database
@@ -97,63 +113,81 @@ class EmotionDatabase:
             electrode: Electrode number
             duration: Duration in seconds
         """
-        with self.lock:
-            conn = self._get_connection()
+        timestamp = time.time()
+        
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
-
-            timestamp = time.time()
             cursor.execute(
                 "INSERT INTO touch_events (timestamp, electrode, duration) VALUES (?, ?, ?)",
                 (timestamp, electrode, duration),
             )
 
-            conn.commit()
-            conn.close()
+    def _get_date_range(self, date=None):
+        """Helper method to get timestamp range for a date
+        
+        Args:
+            date: Optional datetime.date object, defaults to today
+            
+        Returns:
+            tuple: (start_timestamp, end_timestamp)
+        """
+        if date is None:
+            date = datetime.datetime.now().date()
+        elif isinstance(date, str):
+            date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+            
+        start_timestamp = datetime.datetime.combine(date, datetime.time.min).timestamp()
+        end_timestamp = datetime.datetime.combine(date, datetime.time.max).timestamp()
+        return start_timestamp, end_timestamp
 
     def update_daily_stats(self):
-        """Update daily statistics in the database"""
+        """Update daily statistics in the database with optimized queries"""
         today = datetime.datetime.now().strftime("%Y-%m-%d")
+        today_start, today_end = self._get_date_range()
 
-        with self.lock:
-            conn = self._get_connection()
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
 
-            # Get today's timestamp range
-            today_start = datetime.datetime.combine(
-                datetime.datetime.now().date(), datetime.time.min
-            ).timestamp()
-
-            today_end = datetime.datetime.combine(
-                datetime.datetime.now().date(), datetime.time.max
-            ).timestamp()
-
-            # Get emotion data for today
+            # Get emotion counts with a single query
             cursor.execute(
-                "SELECT emotion FROM emotion_events WHERE timestamp BETWEEN ? AND ?",
+                """
+                SELECT emotion, COUNT(*) as count 
+                FROM emotion_events 
+                WHERE timestamp BETWEEN ? AND ?
+                GROUP BY emotion
+                """,
                 (today_start, today_end),
             )
-            emotions = [row[0] for row in cursor.fetchall()]
+            emotion_data = cursor.fetchall()
+            emotion_counts = {emotion: count for emotion, count in emotion_data}
 
-            # Count emotions and find dominant
-            emotion_counts = Counter(emotions)
-            dominant_emotion = (
-                emotion_counts.most_common(1)[0][0] if emotion_counts else "neutral"
-            )
+            # Find dominant emotion
+            dominant_emotion = "neutral"
+            max_count = 0
+            for emotion, count in emotion_counts.items():
+                if count > max_count:
+                    max_count = count
+                    dominant_emotion = emotion
 
-            # Get touch data for today
+            # Get touch statistics with aggregation in SQL
             cursor.execute(
-                "SELECT duration FROM touch_events WHERE timestamp BETWEEN ? AND ?",
+                """
+                SELECT 
+                    COUNT(*) as touch_count,
+                    AVG(duration) as avg_duration,
+                    MAX(duration) as max_duration,
+                    SUM(duration) as total_duration
+                FROM touch_events 
+                WHERE timestamp BETWEEN ? AND ?
+                """,
                 (today_start, today_end),
             )
-            touch_durations = [row[0] for row in cursor.fetchall()]
+            touch_stats = cursor.fetchone()
 
-            # Calculate touch statistics
-            touch_count = len(touch_durations)
-            avg_touch_duration = (
-                sum(touch_durations) / touch_count if touch_count > 0 else 0
-            )
-            max_touch_duration = max(touch_durations) if touch_count > 0 else 0
-            total_touch_duration = sum(touch_durations)
+            touch_count = touch_stats[0] or 0
+            avg_touch_duration = touch_stats[1] or 0
+            max_touch_duration = touch_stats[2] or 0
+            total_touch_duration = touch_stats[3] or 0
 
             # Store daily stats
             cursor.execute(
@@ -174,9 +208,6 @@ class EmotionDatabase:
                 ),
             )
 
-            conn.commit()
-            conn.close()
-
     def get_daily_stats(self, date=None):
         """Get statistics for a specific day
 
@@ -189,29 +220,38 @@ class EmotionDatabase:
         if date is None:
             date = datetime.datetime.now().strftime("%Y-%m-%d")
 
-        with self.lock:
-            conn = self._get_connection()
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
-
             cursor.execute("SELECT * FROM daily_stats WHERE date = ?", (date,))
-
             row = cursor.fetchone()
 
             if row:
-                # Parse the emotion_counts string back to a dictionary
-                emotion_counts_str = row[2]
-                # Safely evaluate the string representation of the dictionary
-                emotion_counts = eval(emotion_counts_str)
-
-                stats = {
-                    "date": row[0],
-                    "dominant_emotion": row[1],
-                    "emotion_counts": emotion_counts,
-                    "touch_count": row[3],
-                    "avg_touch_duration": row[4],
-                    "max_touch_duration": row[5],
-                    "total_touch_duration": row[6],
-                }
+                try:
+                    # Parse the emotion_counts string back to a dictionary
+                    emotion_counts_str = row[2]
+                    # Use ast.literal_eval for safer dictionary parsing
+                    emotion_counts = ast.literal_eval(emotion_counts_str)
+                    
+                    stats = {
+                        "date": row[0],
+                        "dominant_emotion": row[1],
+                        "emotion_counts": emotion_counts,
+                        "touch_count": row[3],
+                        "avg_touch_duration": row[4],
+                        "max_touch_duration": row[5],
+                        "total_touch_duration": row[6],
+                    }
+                except (SyntaxError, ValueError) as e:
+                    # Fallback if parsing fails
+                    stats = {
+                        "date": row[0],
+                        "dominant_emotion": row[1],
+                        "emotion_counts": {},
+                        "touch_count": row[3],
+                        "avg_touch_duration": row[4],
+                        "max_touch_duration": row[5],
+                        "total_touch_duration": row[6],
+                    }
             else:
                 stats = {
                     "date": date,
@@ -222,8 +262,6 @@ class EmotionDatabase:
                     "max_touch_duration": 0,
                     "total_touch_duration": 0,
                 }
-
-            conn.close()
 
             return stats
 
@@ -236,41 +274,47 @@ class EmotionDatabase:
         Returns:
             list: List of daily statistics dictionaries
         """
-        stats_list = []
-
-        with self.lock:
-            conn = self._get_connection()
+        # Calculate date range
+        end_date = datetime.datetime.now().date()
+        start_date = end_date - datetime.timedelta(days=days - 1)
+        date_range = [(start_date + datetime.timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days)]
+        
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
-
-            # Calculate date range
-            end_date = datetime.datetime.now().date()
-            start_date = end_date - datetime.timedelta(days=days - 1)
-
-            for i in range(days):
-                current_date = start_date + datetime.timedelta(days=i)
-                date_str = current_date.strftime("%Y-%m-%d")
-
-                cursor.execute("SELECT * FROM daily_stats WHERE date = ?", (date_str,))
-
-                row = cursor.fetchone()
-
-                if row:
-                    # Parse the emotion_counts string back to a dictionary
-                    emotion_counts_str = row[2]
-                    # Safely evaluate the string representation of the dictionary
-                    emotion_counts = eval(emotion_counts_str)
-
-                    stats = {
-                        "date": row[0],
-                        "dominant_emotion": row[1],
-                        "emotion_counts": emotion_counts,
-                        "touch_count": row[3],
-                        "avg_touch_duration": row[4],
-                        "max_touch_duration": row[5],
-                        "total_touch_duration": row[6],
-                    }
+            
+            # Fetch all available stats for the date range in a single query
+            placeholders = ",".join(["?"] * len(date_range))
+            cursor.execute(
+                f"SELECT * FROM daily_stats WHERE date IN ({placeholders}) ORDER BY date",
+                date_range
+            )
+            rows = cursor.fetchall()
+            
+            # Convert to dictionary for easy lookup
+            stats_dict = {}
+            for row in rows:
+                try:
+                    emotion_counts = ast.literal_eval(row[2])
+                except (SyntaxError, ValueError):
+                    emotion_counts = {}
+                    
+                stats_dict[row[0]] = {
+                    "date": row[0],
+                    "dominant_emotion": row[1],
+                    "emotion_counts": emotion_counts,
+                    "touch_count": row[3],
+                    "avg_touch_duration": row[4],
+                    "max_touch_duration": row[5],
+                    "total_touch_duration": row[6],
+                }
+            
+            # Create the final list with default values for missing dates
+            stats_list = []
+            for date_str in date_range:
+                if date_str in stats_dict:
+                    stats_list.append(stats_dict[date_str])
                 else:
-                    stats = {
+                    stats_list.append({
                         "date": date_str,
                         "dominant_emotion": "neutral",
                         "emotion_counts": {},
@@ -278,57 +322,55 @@ class EmotionDatabase:
                         "avg_touch_duration": 0,
                         "max_touch_duration": 0,
                         "total_touch_duration": 0,
-                    }
-
-                stats_list.append(stats)
-
-            conn.close()
-
+                    })
+            
             return stats_list
 
     def get_total_stats(self):
-        """Get total (all-time) statistics
-
-        Returns:
-            dict: Total statistics
-        """
-        with self.lock:
-            conn = self._get_connection()
+        """Get total statistics with optimized queries"""
+        with self.lock, self._get_connection_context() as conn:
             cursor = conn.cursor()
 
-            # Get emotion data
-            cursor.execute("SELECT COUNT(*) FROM emotion_events")
-            total_emotions = cursor.fetchone()[0]
+            # Get emotion data in a single query
+            cursor.execute("""
+                SELECT 
+                    (SELECT COUNT(*) FROM emotion_events) as total_emotions,
+                    e.emotion as dominant_emotion
+                FROM (
+                    SELECT emotion, COUNT(*) as count
+                    FROM emotion_events
+                    GROUP BY emotion
+                    ORDER BY count DESC
+                    LIMIT 1
+                ) e
+            """)
 
+            result = cursor.fetchone()
+            total_emotions = result[0] if result and result[0] is not None else 0
+            dominant_emotion = result[1] if result and result[1] is not None else "neutral"
+
+            # Get emotion counts
             cursor.execute(
                 "SELECT emotion, COUNT(*) FROM emotion_events GROUP BY emotion"
             )
             emotion_data = cursor.fetchall()
-
             emotion_counts = {emotion: count for emotion, count in emotion_data}
 
-            # Find dominant emotion
-            dominant_emotion = "neutral"
-            max_count = 0
-            for emotion, count in emotion_counts.items():
-                if count > max_count:
-                    max_count = count
-                    dominant_emotion = emotion
+            # Get touch data with a single query
+            cursor.execute("""
+                SELECT 
+                    COUNT(*) as total_touches,
+                    AVG(duration) as avg_duration,
+                    MAX(duration) as max_duration,
+                    SUM(duration) as total_duration
+                FROM touch_events
+            """)
 
-            # Get touch data
-            cursor.execute("SELECT COUNT(*) FROM touch_events")
-            total_touches = cursor.fetchone()[0]
-
-            cursor.execute("SELECT AVG(duration) FROM touch_events")
-            avg_touch_duration = cursor.fetchone()[0] or 0
-
-            cursor.execute("SELECT MAX(duration) FROM touch_events")
-            max_touch_duration = cursor.fetchone()[0] or 0
-
-            cursor.execute("SELECT SUM(duration) FROM touch_events")
-            total_touch_duration = cursor.fetchone()[0] or 0
-
-            conn.close()
+            touch_stats = cursor.fetchone()
+            total_touches = touch_stats[0] if touch_stats and touch_stats[0] is not None else 0
+            avg_touch_duration = touch_stats[1] if touch_stats and touch_stats[1] is not None else 0
+            max_touch_duration = touch_stats[2] if touch_stats and touch_stats[2] is not None else 0
+            total_touch_duration = touch_stats[3] if touch_stats and touch_stats[3] is not None else 0
 
             return {
                 "total_emotions": total_emotions,
