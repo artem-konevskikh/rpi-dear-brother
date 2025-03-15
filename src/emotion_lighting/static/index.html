@@ -12,6 +12,9 @@
 
     <!-- Custom CSS -->
     <link href="style.css" rel="stylesheet">
+
+    <!-- Chart.js for emotion tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -20,13 +23,13 @@
         <div class="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-2">
             <h1 class="text-lg mb-1">EMOTION LIGHTING SYSTEM</h1>
             <div class="bg-gradient-to-r from-transparent via-cyan-500 to-transparent h-px w-3/4 opacity-70"></div>
-            <div class="text-xs text-gray-500 mt-1">SYSTEM v1.0</div>
+            <div id="system-version" class="text-xs text-gray-500 mt-1">SYSTEM v1.0</div>
         </div>
 
         <!-- Current Emotion Section -->
         <div class="flex flex-col">
             <div class="section-title mb-2">
-                <span class="text-terminal">CURRENT EMOTION</span>
+                <span id="current-emotion-title" class="text-terminal">CURRENT EMOTION</span>
             </div>
             <div class="flex-grow flex flex-col items-center justify-center p-2">
                 <div id="emotion-face" class="mb-2">
@@ -40,13 +43,13 @@
         <!-- Touch Data Section -->
         <div class="flex flex-col">
             <div class="section-title mb-2">
-                <span class="text-terminal">INTERACTION DATA</span>
+                <span id="interaction-data-title" class="text-terminal">INTERACTION DATA</span>
             </div>
             <div class="flex-grow flex flex-col items-center justify-center p-2">
                 <div id="touch-container" class="touch-hexagon">
-                    <div class="text-xs mb-1">TOUCHES</div>
+                    <div id="touches-label" class="text-xs mb-1">TOUCHES</div>
                     <div id="touch-count" class="text-2xl">0</div>
-                    <div class="text-xs text-gray-400 mt-1">TODAY</div>
+                    <div id="today-label" class="text-xs text-gray-400 mt-1">TODAY</div>
                 </div>
             </div>
         </div>
@@ -54,10 +57,10 @@
         <!-- Emotion Tracking Section -->
         <div class="flex flex-col">
             <div class="section-title mb-2">
-                <span class="text-terminal">EMOTION TRACKING</span>
+                <span id="emotion-tracking-title" class="text-terminal">EMOTION TRACKING</span>
             </div>
             <div class="flex-grow p-2">
-                <div class="text-center text-xs mb-2">DAILY EMOTION PROFILE</div>
+                <div id="daily-emotion-profile" class="text-center text-xs mb-2">DAILY EMOTION PROFILE</div>
                 <div class="chart-container">
                     <canvas id="emotion-chart"></canvas>
                 </div>
@@ -67,24 +70,24 @@
         <!-- System Status Section -->
         <div class="flex flex-col">
             <div class="section-title mb-2">
-                <span class="text-terminal">SYSTEM STATUS</span>
+                <span id="system-status-title" class="text-terminal">SYSTEM STATUS</span>
             </div>
             <div class="flex-grow p-2">
-                <div class="text-center text-xs mb-2">TOTAL STATISTICS</div>
+                <div id="total-statistics" class="text-center text-xs mb-2">TOTAL STATISTICS</div>
                 <div class="grid grid-cols-2 gap-1 mt-2 text-xs">
-                    <div class="text-gray-400 text-right">EMOTIONS DETECTED:</div>
+                    <div id="emotions-detected-label" class="text-gray-400 text-right">EMOTIONS DETECTED:</div>
                     <div id="total-emotions" class="text-cyan-300">0</div>
 
-                    <div class="text-gray-400 text-right">DOMINANT EMOTION:</div>
+                    <div id="dominant-emotion-label" class="text-gray-400 text-right">DOMINANT EMOTION:</div>
                     <div id="dominant-emotion" class="text-cyan-300">neutral</div>
 
-                    <div class="text-gray-400 text-right">TOTAL TOUCHES:</div>
+                    <div id="total-touches-label" class="text-gray-400 text-right">TOTAL TOUCHES:</div>
                     <div id="total-touches" class="text-cyan-300">0</div>
 
-                    <div class="text-gray-400 text-right">AVG TOUCH TIME:</div>
+                    <div id="avg-touch-time-label" class="text-gray-400 text-right">AVG TOUCH TIME:</div>
                     <div id="total-avg-duration" class="text-cyan-300">0.0s</div>
 
-                    <div class="text-gray-400 text-right">ALL-TIME TOUCH:</div>
+                    <div id="all-time-touch-label" class="text-gray-400 text-right">ALL-TIME TOUCH:</div>
                     <div id="total-touch-duration" class="text-cyan-300">0.0s</div>
                 </div>
             </div>
@@ -100,7 +103,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom JavaScript -->
-    <script src="/static/script.js"></script>
+    <script src="script.js" type="module"></script>
 
     <!-- SVG Filters for glitch effects -->
     <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" version="1.1" xmlns="http://www.w3.org/2000/svg">

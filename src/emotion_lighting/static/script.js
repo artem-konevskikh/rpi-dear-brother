@@ -1,4 +1,6 @@
 // Emotion Lighting System - Frontend JavaScript
+import { defaultLanguage, languages, translations, emotionNames } from './lang.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     // ----- UTILITY FUNCTIONS -----
     // Format large numbers with K/M suffix
@@ -23,7 +25,105 @@ document.addEventListener('DOMContentLoaded', function () {
         totalAvgDuration: document.getElementById('total-avg-duration'),
         totalTouchDuration: document.getElementById('total-touch-duration'),
         systemTime: document.getElementById('system-time'),
+        // Text elements that need translation
+        pageTitle: document.querySelector('title'),
+        headerTitle: document.querySelector('h1'),
+        systemVersion: document.getElementById('system-version'),
+        sectionTitles: [
+            document.getElementById('current-emotion-title'),
+            document.getElementById('interaction-data-title'),
+            document.getElementById('emotion-tracking-title'),
+            document.getElementById('system-status-title')
+        ],
+        touchesLabel: document.getElementById('touches-label'),
+        todayLabel: document.getElementById('today-label'),
+        chartTitle: document.getElementById('daily-emotion-profile'),
+        statsTitle: document.getElementById('total-statistics'),
+        statsLabels: [
+            document.getElementById('emotions-detected-label'),
+            document.getElementById('dominant-emotion-label'),
+            document.getElementById('total-touches-label'),
+            document.getElementById('avg-touch-time-label'),
+            document.getElementById('all-time-touch-label')
+        ]
     };
+    
+    // ----- LANGUAGE MANAGEMENT -----
+    // Current language - prioritize defaultLanguage over localStorage
+    let currentLanguage = defaultLanguage;
+    // Only use localStorage if it exists and user explicitly changed it
+    const storedLanguage = localStorage.getItem('language');
+    if (storedLanguage && storedLanguage !== defaultLanguage) {
+        currentLanguage = storedLanguage;
+    }
+    
+    // Language selector has been removed as per requirements
+    // Language is now configured via script only
+    
+    // Set language and update UI
+    function setLanguage(lang) {
+        if (!translations[lang]) return;
+        
+        currentLanguage = lang;
+        localStorage.setItem('language', lang);
+        updateLanguage();
+    }
+    
+    // Update all text elements with the current language
+    function updateLanguage() {
+        const t = translations[currentLanguage];
+        
+        // Update page title and header
+        elements.pageTitle.textContent = t.title;
+        elements.headerTitle.textContent = t.title;
+        elements.systemVersion.textContent = t.systemVersion;
+        
+        // Update section titles
+        const sectionTitlesText = [t.currentEmotion, t.interactionData, t.emotionTracking, t.systemStatus];
+        elements.sectionTitles.forEach((el, i) => {
+            if (sectionTitlesText[i]) el.textContent = sectionTitlesText[i];
+        });
+        
+        // Update touch data labels
+        elements.touchesLabel.textContent = t.touches;
+        elements.todayLabel.textContent = t.today;
+        
+        // Update chart title
+        elements.chartTitle.textContent = t.dailyEmotionProfile;
+        
+        // Update stats title and labels
+        elements.statsTitle.textContent = t.totalStatistics;
+        
+        const statsLabelsText = [
+            t.emotionsDetected,
+            t.dominantEmotion,
+            t.totalTouches,
+            t.avgTouchTime,
+            t.allTimeTouch
+        ];
+        
+        elements.statsLabels.forEach((el, i) => {
+            if (statsLabelsText[i]) el.textContent = statsLabelsText[i];
+        });
+        
+        // Update current emotion name if present
+        if (elements.emotionName.textContent) {
+            const emotion = elements.emotionName.textContent.toLowerCase();
+            if (emotionNames[currentLanguage][emotion]) {
+                elements.emotionName.textContent = emotionNames[currentLanguage][emotion];
+            }
+        }
+        
+        // Update dominant emotion if present
+        if (elements.dominantEmotion.textContent) {
+            const emotion = elements.dominantEmotion.textContent.toLowerCase();
+            if (emotionNames[currentLanguage][emotion]) {
+                elements.dominantEmotion.textContent = emotionNames[currentLanguage][emotion];
+            }
+        }
+        
+        // Language selector has been removed
+    }
 
     // ----- EMOTION CONFIGURATION -----
     const EMOTION_CONFIG = {
@@ -59,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // All emotions to display in chart - ensure these match backend
-    const CHART_EMOTIONS = ["happy", "sad", "angry", "neutral", "fear", "surprise"];
+    const CHART_EMOTIONS = ["happy", "sad", "angry", "neutral", "fear", "surprise", "disgust"];
 
     // Chart reference
     let emotionChart = null;
@@ -97,7 +197,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     },
                     x: {
                         grid: { display: false },
-                        ticks: { color: '#FFFFFF' }
+                        ticks: { 
+                            color: '#FFFFFF',
+                            font: {
+                                size: 8 // Smaller font size for x-axis labels
+                            }
+                        }
                     }
                 },
                 plugins: {
@@ -141,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateUI(data) {
         // Update emotion face and name
         drawEmotionFace(data.emotion.current);
-        elements.emotionName.textContent = data.emotion.current.toUpperCase();
+        elements.emotionName.textContent = emotionNames[currentLanguage][data.emotion.current] || data.emotion.current.toUpperCase();
 
         // Update touch data
         updateTouchInfo(data.touch);
@@ -186,7 +291,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!stats) return;
 
         elements.totalEmotions.textContent = formatLargeNumber(stats.total_emotions || 0);
-        elements.dominantEmotion.textContent = (stats.dominant_emotion || 'neutral').toUpperCase();
+        const dominantEmotion = stats.dominant_emotion || 'neutral';
+        elements.dominantEmotion.textContent = emotionNames[currentLanguage][dominantEmotion] || dominantEmotion.toUpperCase();
         elements.totalTouches.textContent = formatLargeNumber(stats.total_touches || 0);
         elements.totalAvgDuration.textContent = (stats.avg_touch_duration || 0).toFixed(1) + 's';
         elements.totalTouchDuration.textContent = (stats.total_touch_duration || 0).toFixed(1) + 's';
@@ -296,6 +402,9 @@ document.addEventListener('DOMContentLoaded', function () {
             
             // Add scan line glitch effect
             addScanLineGlitchEffect();
+            
+            // Apply current language
+            updateLanguage();
 
             // Start WebSocket connection last (after UI is ready)
             connectWebSocket();

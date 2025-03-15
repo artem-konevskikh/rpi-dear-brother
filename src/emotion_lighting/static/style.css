@@ -316,3 +316,38 @@ canvas {
   filter: drop-shadow(0 0 2px rgba(var(--primary-rgb), 0.5));
   will-change: transform; /* Optimize animation performance */
 }
+
+/* Make chart labels smaller */
+#emotion-chart {
+  font-size: 10px;
+}
+
+/* Language selector styling */
+.language-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-left: 1rem;
+}
+
+#language-select {
+  background-color: var(--bg-panel);
+  color: var(--secondary-color);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#language-select:hover {
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 5px rgba(var(--secondary-rgb), 0.5);
+}
+
+#language-select option {
+  background-color: var(--bg-color);
+  color: var(--secondary-color);
+}
