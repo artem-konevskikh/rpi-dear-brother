@@ -1,5 +1,16 @@
 // Emotion Lighting System - Frontend JavaScript
 document.addEventListener('DOMContentLoaded', function () {
+    // ----- UTILITY FUNCTIONS -----
+    // Format large numbers with K/M suffix
+    function formatLargeNumber(num) {
+        if (!num && num !== 0) return '0';
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        } else if (num >= 1000) {
+            return (num / 1000).toFixed(1) + 'K';
+        }
+        return num;
+    }
     // ----- ELEMENT REFERENCES -----
     const elements = {
         emotionFace: document.getElementById('emotion-face'),
@@ -18,32 +29,32 @@ document.addEventListener('DOMContentLoaded', function () {
     const EMOTION_CONFIG = {
         "happy": {
             "color": "#FFFF00", // Yellow
-            "mouthCurve": 0.5   // Smile
+            "emoji": "(◠‿◠)"    // Smile
         },
         "sad": {
             "color": "#0000FF", // Blue
-            "mouthCurve": -0.5  // Frown
+            "emoji": "(︶︹︶)"   // Frown
         },
         "angry": {
             "color": "#FF0000", // Red
-            "mouthCurve": -0.2  // Slight frown with bent
+            "emoji": "(ಠ益ಠ)"   // Angry face
         },
         "neutral": {
             "color": "#FFFFFF", // White
-            "mouthCurve": 0.0   // Straight line
+            "emoji": "( ･_･)"   // Neutral face
         },
         "fear": {
             "color": "#800080", // Purple
-            "mouthCurve": -0.3  // Slight wary frown
+            "emoji": "(ㆆ﹏ㆆ)"   // Fearful face
         },
         "surprise": {
             "color": "#00FFFF", // Cyan
-            "mouthCurve": 0.0,  // Straight line
+            "emoji": "(⊙□⊙)",   // Surprised face
             "mouthOpen": true   // Open mouth
         },
         "disgust": {
             "color": "#008000", // Green
-            "mouthCurve": -0.3  // Frown with bent
+            "emoji": "(≧︿≦)"   // Disgusted face
         }
     };
 
@@ -55,8 +66,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ----- CHART INITIALIZATION -----
     function initEmotionChart() {
-        const ctx = document.getElementById('emotion-chart').getContext('2d');
-        const chartConfig = {
+        try {
+            const chartElement = document.getElementById('emotion-chart');
+            if (!chartElement) {
+                console.error('Chart element not found');
+                return;
+            }
+            
+            const ctx = chartElement.getContext('2d');
+            const chartConfig = {
             type: 'bar',
             data: {
                 labels: CHART_EMOTIONS.map(e => e.substring(0, 3).toUpperCase()),
@@ -88,96 +106,35 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         };
 
-        emotionChart = new Chart(ctx, chartConfig);
+            emotionChart = new Chart(ctx, chartConfig);
+        } catch (error) {
+            console.error('Failed to initialize chart:', error);
+        }
     }
 
-    // ----- SVG FACE DRAWING -----
+    // ----- ASCII EMOJI FACE DRAWING -----
     function drawEmotionFace(emotion) {
-        const emotionData = EMOTION_CONFIG[emotion] || EMOTION_CONFIG["neutral"];
-        const size = 140;
-        const radius = size / 2;
-
-        // Create SVG element
-        const svg = createSvgElement("svg", {
-            width: size,
-            height: size,
-            viewBox: `0 0 ${size} ${size}`
-        });
-
-        // Create face circle
-        const circle = createSvgElement("circle", {
-            cx: radius,
-            cy: radius,
-            r: radius - 5,
-            fill: emotionData.color
-        });
-        svg.appendChild(circle);
-
-        // Eye parameters
-        const eyeOffsetX = radius * 0.4;
-        const eyeOffsetY = radius * 0.3;
-        const eyeRadius = radius * 0.12;
-
-        // Add eyes
-        svg.appendChild(createEye(radius - eyeOffsetX, radius - eyeOffsetY, eyeRadius));
-        svg.appendChild(createEye(radius + eyeOffsetX, radius - eyeOffsetY, eyeRadius));
-
-        // Add mouth based on emotion
-        svg.appendChild(createMouth(emotionData, radius, radius + radius * 0.2));
-
-        // Replace any existing face
-        elements.emotionFace.innerHTML = '';
-        elements.emotionFace.appendChild(svg);
-    }
-
-    // Helper function to create SVG elements
-    function createSvgElement(name, attributes) {
-        const element = document.createElementNS("http://www.w3.org/2000/svg", name);
-        for (const [key, value] of Object.entries(attributes)) {
-            element.setAttribute(key, value);
+        // Use default emotion if invalid emotion is provided
+        const safeEmotion = EMOTION_CONFIG[emotion] ? emotion : "neutral";
+        const emotionData = EMOTION_CONFIG[safeEmotion];
+        
+        // Check if we already have a container to reuse
+        let emojiContainer = elements.emotionFace.querySelector('.ascii-emoji');
+        
+        if (!emojiContainer) {
+            // Create a new container if none exists
+            emojiContainer = document.createElement('div');
+            emojiContainer.className = 'ascii-emoji';
+            elements.emotionFace.innerHTML = '';
+            elements.emotionFace.appendChild(emojiContainer);
         }
-        return element;
-    }
-
-    // Create an eye SVG element
-    function createEye(cx, cy, radius) {
-        return createSvgElement("circle", {
-            cx: cx,
-            cy: cy,
-            r: radius,
-            fill: "#000000"
-        });
-    }
-
-    // Create mouth based on emotion data
-    function createMouth(emotionData, centerX, mouthY) {
-        const mouthWidth = centerX;
-
-        if (emotionData.mouthOpen) {
-            return createSvgElement("circle", {
-                cx: centerX,
-                cy: mouthY,
-                r: centerX * 0.15,
-                fill: "#000000"
-            });
-        } else if (emotionData.mouthCurve === 0) {
-            return createSvgElement("line", {
-                x1: centerX - mouthWidth / 2,
-                y1: mouthY,
-                x2: centerX + mouthWidth / 2,
-                y2: mouthY,
-                stroke: "#000000",
-                "stroke-width": "4"
-            });
-        } else {
-            const curveHeight = 20 * emotionData.mouthCurve;
-            return createSvgElement("path", {
-                d: `M ${centerX - mouthWidth / 2} ${mouthY} Q ${centerX} ${mouthY + curveHeight}, ${centerX + mouthWidth / 2} ${mouthY}`,
-                fill: "none",
-                stroke: "#000000",
-                "stroke-width": "4"
-            });
-        }
+        
+        // Update the container properties
+        emojiContainer.style.color = emotionData.color;
+        emojiContainer.textContent = emotionData.emoji;
+        
+        // Also update the emotion name color to match
+        elements.emotionName.style.color = emotionData.color;
     }
 
     // ----- UI UPDATES -----
@@ -200,7 +157,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateTouchInfo(touchData) {
-        elements.touchCount.textContent = touchData.today_touches;
+        // Format large numbers for better display
+        const touchCount = touchData.today_touches || 0;
+        elements.touchCount.textContent = formatLargeNumber(touchCount);
+
+        // Apply appropriate class based on number of digits
+        elements.touchCount.classList.remove('digits-4', 'digits-5', 'digits-6', 'digits-7', 'digits-many');
+
+        const digitCount = touchCount.toString().length;
+        if (digitCount >= 8) {
+            elements.touchCount.classList.add('digits-many');
+        } else if (digitCount >= 6) {
+            elements.touchCount.classList.add('digits-6');
+        } else if (digitCount === 5) {
+            elements.touchCount.classList.add('digits-5');
+        } else if (digitCount === 4) {
+            elements.touchCount.classList.add('digits-4');
+        }
 
         if (touchData.active_touches > 0) {
             elements.touchContainer.classList.add('touch-active');
@@ -212,31 +185,49 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateStatistics(stats) {
         if (!stats) return;
 
-        elements.totalEmotions.textContent = stats.total_emotions || 0;
+        elements.totalEmotions.textContent = formatLargeNumber(stats.total_emotions || 0);
         elements.dominantEmotion.textContent = (stats.dominant_emotion || 'neutral').toUpperCase();
-        elements.totalTouches.textContent = stats.total_touches || 0;
+        elements.totalTouches.textContent = formatLargeNumber(stats.total_touches || 0);
         elements.totalAvgDuration.textContent = (stats.avg_touch_duration || 0).toFixed(1) + 's';
         elements.totalTouchDuration.textContent = (stats.total_touch_duration || 0).toFixed(1) + 's';
     }
 
     function updateEmotionChart(emotionCounts) {
-        if (!emotionChart) return;
+        if (!emotionChart || !emotionCounts) return;
 
+        // Check if data has actually changed before updating
+        let hasChanged = false;
+        
         CHART_EMOTIONS.forEach((emotion, index) => {
-            emotionChart.data.datasets[0].data[index] = emotionCounts[emotion] || 0;
+            const newValue = emotionCounts[emotion] || 0;
+            if (emotionChart.data.datasets[0].data[index] !== newValue) {
+                emotionChart.data.datasets[0].data[index] = newValue;
+                hasChanged = true;
+            }
         });
-        emotionChart.update();
+        
+        // Only update the chart if data has changed
+        if (hasChanged) {
+            emotionChart.update();
+        }
     }
 
     // ----- WEBSOCKET CONNECTION -----
-    function connectWebSocket() {
+    function connectWebSocket(retryCount = 0) {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
+        
+        // Exponential backoff for reconnection
+        const maxRetryDelay = 30000; // 30 seconds max
+        const baseDelay = 1000; // Start with 1 second
+        const retryDelay = Math.min(maxRetryDelay, baseDelay * Math.pow(1.5, retryCount));
 
         const socket = new WebSocket(wsUrl);
 
         socket.onopen = () => {
             console.log('WebSocket connection established');
+            // Reset retry count on successful connection
+            connectWebSocket.retryCount = 0;
         };
 
         socket.onmessage = (event) => {
@@ -249,26 +240,70 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         socket.onclose = () => {
-            console.log('WebSocket connection closed. Reconnecting...');
-            setTimeout(connectWebSocket, 2000);
+            const nextRetryCount = retryCount + 1;
+            console.log(`WebSocket connection closed. Reconnecting in ${retryDelay}ms... (Attempt ${nextRetryCount})`);
+            setTimeout(() => connectWebSocket(nextRetryCount), retryDelay);
         };
 
         socket.onerror = (error) => {
             console.error('WebSocket error:', error);
-            socket.close();
+            // Let onclose handle the reconnection
         };
+    }
+
+    // ----- SCAN LINE GLITCH EFFECT -----
+    function addScanLineGlitchEffect() {
+        // Cache the scan line element to avoid repeated DOM queries
+        const scanLine = document.querySelector('.scan-line');
+        if (!scanLine) {
+            console.warn('Scan line element not found');
+            return;
+        }
+        
+        // Create random glitches for the scan line
+        setInterval(() => {
+            // Random glitch effects with 30% probability
+            if (Math.random() > 0.7) {
+                // Apply random transform
+                const glitchX = (Math.random() * 2 - 1) * 1.5;
+                const glitchScale = 0.95 + Math.random() * 0.1;
+                const height = 1 + Math.random() * 3;
+                const opacity = 0.2 + Math.random() * 0.3;
+                
+                // Batch DOM updates
+                scanLine.style.cssText = `
+                    transform: scaleX(${glitchScale}) translateX(${glitchX}%);
+                    height: ${height}px;
+                    opacity: ${opacity};
+                `;
+                
+                // Reset after a short time
+                setTimeout(() => {
+                    scanLine.style.cssText = '';
+                }, 50 + Math.random() * 150);
+            }
+        }, 300);
     }
 
     // ----- INITIALIZATION -----
     function initialize() {
-        // Initialize chart
-        initEmotionChart();
+        try {
+            // Initialize chart
+            initEmotionChart();
 
-        // Start WebSocket connection
-        connectWebSocket();
+            // Set initial face
+            drawEmotionFace('neutral');
+            
+            // Add scan line glitch effect
+            addScanLineGlitchEffect();
 
-        // Set initial face
-        drawEmotionFace('neutral');
+            // Start WebSocket connection last (after UI is ready)
+            connectWebSocket();
+            
+            console.log('Emotion Lighting System initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize application:', error);
+        }
     }
 
     // Start the application

@@ -8,27 +8,30 @@
 
     <!-- External CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
     <!-- Custom CSS -->
-    <link href="/static/style.css" rel="stylesheet">
+    <link href="style.css" rel="stylesheet">
 </head>
 
 <body>
-    <div class="grid-container">
+    <div class="grid-container" id="main-grid">
         <!-- Header -->
-        <div class="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-4">
-            <h1 class="text-xl mb-2">EMOTION LIGHTING SYSTEM</h1>
-            <div class="bg-gray-800 h-px w-3/4"></div>
+        <div class="col-span-1 md:col-span-2 flex flex-col items-center justify-center py-2">
+            <h1 class="text-lg mb-1">EMOTION LIGHTING SYSTEM</h1>
+            <div class="bg-gradient-to-r from-transparent via-cyan-500 to-transparent h-px w-3/4 opacity-70"></div>
+            <div class="text-xs text-gray-500 mt-1">SYSTEM v1.0</div>
         </div>
 
         <!-- Current Emotion Section -->
         <div class="flex flex-col">
-            <div class="section-title mb-4">
-                CURRENT EMOTION
+            <div class="section-title mb-2">
+                <span class="text-terminal">CURRENT EMOTION</span>
             </div>
-            <div class="flex-grow flex flex-col items-center justify-center p-4">
-                <div id="emotion-face" class="mb-4">
+            <div class="flex-grow flex flex-col items-center justify-center p-2">
+                <div id="emotion-face" class="mb-2">
                     <!-- SVG face will be inserted here via JavaScript -->
+                    ( ･_･)
                 </div>
                 <div id="emotion-name" class="text-lg uppercase">neutral</div>
             </div>
@@ -36,25 +39,25 @@
 
         <!-- Touch Data Section -->
         <div class="flex flex-col">
-            <div class="section-title mb-4">
-                INTERACTION DATA
+            <div class="section-title mb-2">
+                <span class="text-terminal">INTERACTION DATA</span>
             </div>
-            <div class="flex-grow flex flex-col items-center justify-center p-4">
+            <div class="flex-grow flex flex-col items-center justify-center p-2">
                 <div id="touch-container" class="touch-hexagon">
-                    <div class="text-sm mb-2">TOUCHES</div>
-                    <div id="touch-count" class="text-3xl">0</div>
-                    <div class="text-xs text-gray-400 mt-2">TODAY</div>
+                    <div class="text-xs mb-1">TOUCHES</div>
+                    <div id="touch-count" class="text-2xl">0</div>
+                    <div class="text-xs text-gray-400 mt-1">TODAY</div>
                 </div>
             </div>
         </div>
 
         <!-- Emotion Tracking Section -->
         <div class="flex flex-col">
-            <div class="section-title mb-4">
-                EMOTION TRACKING
+            <div class="section-title mb-2">
+                <span class="text-terminal">EMOTION TRACKING</span>
             </div>
-            <div class="flex-grow p-4">
-                <div class="text-center mb-4">DAILY EMOTION PROFILE</div>
+            <div class="flex-grow p-2">
+                <div class="text-center text-xs mb-2">DAILY EMOTION PROFILE</div>
                 <div class="chart-container">
                     <canvas id="emotion-chart"></canvas>
                 </div>
@@ -63,32 +66,32 @@
 
         <!-- System Status Section -->
         <div class="flex flex-col">
-            <div class="section-title mb-4">
-                SYSTEM STATUS
+            <div class="section-title mb-2">
+                <span class="text-terminal">SYSTEM STATUS</span>
             </div>
-            <div class="flex-grow p-4">
-                <div class="text-center mb-4">TOTAL STATISTICS</div>
-                <div class="grid grid-cols-2 gap-2 mt-4">
+            <div class="flex-grow p-2">
+                <div class="text-center text-xs mb-2">TOTAL STATISTICS</div>
+                <div class="grid grid-cols-2 gap-1 mt-2 text-xs">
                     <div class="text-gray-400 text-right">EMOTIONS DETECTED:</div>
-                    <div id="total-emotions" class="text-white">0</div>
+                    <div id="total-emotions" class="text-cyan-300">0</div>
 
                     <div class="text-gray-400 text-right">DOMINANT EMOTION:</div>
-                    <div id="dominant-emotion" class="text-white">neutral</div>
+                    <div id="dominant-emotion" class="text-cyan-300">neutral</div>
 
                     <div class="text-gray-400 text-right">TOTAL TOUCHES:</div>
-                    <div id="total-touches" class="text-white">0</div>
+                    <div id="total-touches" class="text-cyan-300">0</div>
 
                     <div class="text-gray-400 text-right">AVG TOUCH TIME:</div>
-                    <div id="total-avg-duration" class="text-white">0.0s</div>
+                    <div id="total-avg-duration" class="text-cyan-300">0.0s</div>
 
                     <div class="text-gray-400 text-right">ALL-TIME TOUCH:</div>
-                    <div id="total-touch-duration" class="text-white">0.0s</div>
+                    <div id="total-touch-duration" class="text-cyan-300">0.0s</div>
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
-        <div class="col-span-1 md:col-span-2 flex justify-center items-center text-sm text-gray-500 py-4">
+        <div class="col-span-1 md:col-span-2 flex justify-center items-center text-xs text-gray-500 py-2">
             <div id="system-time">SYS: 2025-03-10 | 12:00:00</div>
         </div>
     </div>
@@ -98,6 +101,22 @@
 
     <!-- Custom JavaScript -->
     <script src="/static/script.js"></script>
+
+    <!-- SVG Filters for glitch effects -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;" version="1.1" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+            <filter id="glitch-filter">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="0.5" result="blur" />
+                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
+                <feBlend in="SourceGraphic" in2="goo" />
+                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" result="noise" />
+                <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" />
+            </filter>
+        </defs>
+    </svg>
+    
+    <!-- Scan line effect -->
+    <div class="scan-line"></div>
 </body>
 
 </html>

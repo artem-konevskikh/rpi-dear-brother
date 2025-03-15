@@ -1,82 +1,318 @@
+/* CSS Variables for consistent colors and values */
+:root {
+  --primary-color: #00ff9d;
+  --primary-rgb: 0, 255, 157;
+  --secondary-color: #00ffff;
+  --secondary-rgb: 0, 255, 255;
+  --bg-color: #0a0a0f;
+  --bg-panel: rgba(0, 20, 40, 0.2);
+  --border-color: rgba(0, 255, 157, 0.3);
+  --text-shadow: 0 0 5px rgba(0, 255, 157, 0.5);
+  --box-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+  --font-mono: 'Courier New', monospace;
+  --grid-gap: 0.5rem;
+}
+
 body {
-    background-color: #080808;
-    color: white;
-    font-family: 'Courier New', monospace;
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
+  background-color: var(--bg-color);
+  color: var(--primary-color);
+  font-family: var(--font-mono);
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-shadow: var(--text-shadow);
+  font-size: 14px;
 }
 
 .hexagon-border {
-    clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
-    background-color: transparent;
-    border: 2px solid #404040;
-    padding: 10px;
+  /* Adjusted clip-path to ensure borders are fully visible */
+  clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+  background-color: var(--bg-panel);
+  border: 2px solid var(--primary-color);
+  /* Increased border width for better visibility */
+  padding: 8px;
+  box-shadow: var(--box-shadow), inset 0 0 5px rgba(var(--primary-rgb), 0.2);
+  position: relative;
+  /* Added for pseudo-element positioning */
+  z-index: 1;
+}
+
+/* Add a pseudo-element to reinforce the hexagon border */
+.hexagon-border::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  z-index: -1;
+  clip-path: polygon(10% 0%, 90% 0%, 100% 50%, 90% 100%, 10% 100%, 0% 50%);
+  border: 1px solid rgba(var(--primary-rgb), 0.8);
+  pointer-events: none;
 }
 
 .section-title {
-    border: 1px solid #555555;
-    padding: 8px 24px;
-    text-align: center;
+  border: none;
+  border-left: 1px solid var(--primary-color);
+  border-right: 1px solid var(--primary-color);
+  border-bottom: 1px solid var(--primary-color);
+  padding: 4px 12px;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 1px;
+  background-color: rgba(var(--primary-rgb), 0.1);
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  clip-path: polygon(15px 0%, 100% 0%, 100% 100%, 0% 100%, 0% 15px);
+  box-shadow: 2px 2px 5px rgba(var(--primary-rgb), 0.3);
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  animation: scan-line 3s linear infinite;
+}
+
+@keyframes scan-line {
+  0% {
+    left: -100%;
+  }
+
+  100% {
+    left: 100%;
+  }
 }
 
 .grid-container {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 1rem;
-    padding: 1rem;
-    height: calc(100vh - 2rem);
-    flex-grow: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto;
+  gap: var(--grid-gap);
+  padding: var(--grid-gap);
+  height: 480px;
+  max-height: 480px;
+  width: 800px;
+  max-width: 800px;
+  margin: 0 auto;
+  flex-grow: 1;
+  background-image: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.05) 0%, transparent 70%);
 }
 
-@media (min-width: 768px) {
-    .grid-container {
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: auto 1fr 1fr auto;
-    }
+@media (min-width:768px) {
+  .grid-container {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr 1fr auto;
+  }
 }
 
 /* Chart styling */
 .chart-container {
-    position: relative;
-    height: 300px; /* Fixed height for the chart container */
-    width: 100%;
+  position: relative;
+  height: 120px;
+  /* Reduced height for the chart container */
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-panel);
+  padding: 5px;
 }
 
 /* Touch hexagon */
 .touch-hexagon {
-    width: 140px;
-    height: 140px;
-    margin: 0 auto;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
-    border: 2px solid #666666;
-    background-color: transparent;
+  width: 110px;
+  height: 110px;
+  margin: 0 auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  /* Adjusted clip-path to ensure borders are fully visible */
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  border: 2px solid var(--primary-color);
+  /* Increased border width for better visibility */
+  background-color: var(--bg-panel);
+  box-shadow: 0 0 15px rgba(var(--primary-rgb), 0.4);
+  z-index: 1;
+}
+
+/* Add a pseudo-element to reinforce the hexagon border */
+.touch-hexagon::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  z-index: -1;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  border: 1px solid rgba(var(--primary-rgb), 0.8);
+  pointer-events: none;
 }
 
 /* Blinking effect for active touches */
 @keyframes blink {
-    0% {
-        opacity: 0.3;
-    }
+  0% {
+    opacity: 0.3;
+    box-shadow: 0 0 5px rgba(var(--primary-rgb), 0.2);
+  }
 
-    50% {
-        opacity: 1;
-    }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.6);
+  }
 
-    100% {
-        opacity: 0.3;
-    }
+  100% {
+    opacity: 0.3;
+    box-shadow: 0 0 5px rgba(var(--primary-rgb), 0.2);
+  }
 }
 
 .touch-active {
-    animation: blink 1.5s infinite;
-    background-color: #333333;
+  animation: blink 1.5s infinite;
+  background-color: rgba(var(--primary-rgb), 0.2);
+}
+
+/* Additional cyberpunk styling */
+#emotion-name {
+  font-weight: bold;
+  text-align: center;
+}
+
+/* ASCII Emoji styling */
+.ascii-emoji {
+  font-size: 2.5rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  line-height: 1.2;
+  margin-bottom: 0.5rem;
+}
+
+#touch-count {
+  color: var(--secondary-color);
+  text-shadow: 0 0 8px rgba(var(--secondary-rgb), 0.7);
+  font-size: 2rem;
+  /* Base size */
+  line-height: 1;
+  max-width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Responsive font sizes for large numbers */
+#touch-count.digits-4 {
+  font-size: 1.8rem;
+}
+
+#touch-count.digits-5 {
+  font-size: 1.5rem;
+}
+
+#touch-count.digits-6,
+#touch-count.digits-7 {
+  font-size: 1.2rem;
+}
+
+#touch-count.digits-many {
+  font-size: 1rem;
+}
+
+#system-time {
+  font-family: var(--font-mono);
+  color: #666;
+  font-size: 12px;
+  border-top: 1px solid #333;
+  width: 100%;
+  text-align: center;
+  padding-top: 4px;
+}
+
+/* Terminal-like text effect */
+.text-terminal {
+  font-family: var(--font-mono);
+  color: var(--primary-color);
+  position: relative;
+  display: inline-block;
+}
+
+/* Grid lines overlay */
+.grid-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: linear-gradient(rgba(var(--primary-rgb), 0.03) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(var(--primary-rgb), 0.03) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Scan line effect - glitchy version */
+.scan-line {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: rgba(var(--primary-rgb), 0.3);
+  opacity: 0.4; /* More transparent */
+  z-index: 9999;
+  pointer-events: none;
+  animation: scan 8s steps(30, end) infinite;
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.2);
+  transform-origin: center;
+  filter: url('#glitch-filter');
+}
+
+@keyframes scan {
+  0% {
+    top: 0;
+    opacity: 0.2;
+    transform: scaleX(0.98) translateX(-1%);
+    height: 2px;
+  }
+  20% {
+    opacity: 0.5;
+    transform: scaleX(1) translateX(0);
+  }
+  40% {
+    opacity: 0.3;
+    transform: scaleX(1.03) translateX(1%);
+    height: 3px;
+  }
+  60% {
+    opacity: 0.4;
+    transform: scaleX(0.98) translateX(0);
+    height: 1px;
+  }
+  80% {
+    opacity: 0.2;
+    transform: scaleX(1.02) translateX(-0.5%);
+    height: 2px;
+  }
+  100% {
+    top: 480px;
+    opacity: 0.3;
+    transform: scaleX(1) translateX(0);
+    height: 2px;
+  }
+}
+
+/* Chart.js customization */
+canvas {
+  filter: drop-shadow(0 0 2px rgba(var(--primary-rgb), 0.5));
+  will-change: transform; /* Optimize animation performance */
 }
