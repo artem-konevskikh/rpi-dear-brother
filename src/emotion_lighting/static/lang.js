@@ -14,7 +14,7 @@ const translations = {
     // English translations
     en: {
         // Page title and header
-        title: 'EMOTION LIGHTING SYSTEM',
+        title: 'DEAR BROTHER, ...',
         systemVersion: 'SYSTEM v1.0',
         
         // Section titles
@@ -48,7 +48,7 @@ const translations = {
     // Russian translations
     ru: {
         // Page title and header
-        title: 'СИСТЕМА ЭМОЦИОНАЛЬНОГО ОСВЕЩЕНИЯ',
+        title: 'ДОРОГОЙ БРАТ, ...',
         systemVersion: 'СИСТЕМА v1.0',
         
         // Section titles
