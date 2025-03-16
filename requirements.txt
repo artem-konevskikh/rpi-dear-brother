@@ -1,0 +1,15 @@
+opencv-python>=4.11.0.86
+fer>=22.5.1
+keras>=3.8.0
+tensorflow>=2.18.0
+numpy>=1.26.4
+smbus2>=0.5.0
+setuptools>=75.8.0
+pi5neo>=1.0.5
+moviepy==1.0.3
+customtkinter>=5.2.2
+fastapi>=0.115.11
+pydantic>=2.10.6
+websockets>=15.0.1
+uvicorn>=0.34.0
+ujson>=5.10.0
