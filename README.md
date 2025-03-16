@@ -1,5 +1,11 @@
 # Python code for Dear Brother project by Maria Fedorova
 
+## Raspberry Pi Setup
+
+1. **Install Raspbian OS**: Download Raspbian OS from the official website and write it to an SD card.
+2. **Enable SPI and I2C interfaces**: Run `sudo raspi-config` and navigate to `Interfacing Options`. Enable SPI and I2C interfaces.
+3. **Configure SPI**: Add `spidev.bufsiz=32768` to `/boot/firmware/cmdline.txt`
+
 ## Installation
 
 ```bash
@@ -17,12 +23,15 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 uv pip install -e .
 ```
 
+## Autostart
+TODO: add autostart instructions later
+
 ## Example Usage
 
 ```bash
 # Run with default settings
-emotion-lighting
+python src.emotion-lighting.main
 
 # Run with custom settings
-emotion-lighting --led-count 60 --camera 1 --db custom_database.db
+python src.emotion-lighting.main --led-count 60 --no-touch
 ```
