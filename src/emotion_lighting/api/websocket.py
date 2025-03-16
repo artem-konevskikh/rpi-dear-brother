@@ -127,7 +127,19 @@ class WebSocketManager:
         """
         try:
             emotion, confidence = self.emotion_tracker.get_current_emotion()
-            touch_stats = self.touch_tracker.get_statistics()
+            
+            # Handle case when touch_tracker is None (--no-touch mode)
+            if self.touch_tracker:
+                touch_stats = self.touch_tracker.get_statistics()
+            else:
+                # Provide default values when touch sensor is disabled
+                touch_stats = {
+                    "active_touches": 0,
+                    "today_touches": 0,
+                    "today_total_duration": 0,
+                    "today_max_duration": 0
+                }
+                
             daily_stats_data = self.database.get_daily_stats()
             total_stats_data = self.database.get_total_stats()
 

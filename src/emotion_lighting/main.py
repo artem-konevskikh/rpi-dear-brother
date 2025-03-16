@@ -46,6 +46,7 @@ class EmotionLightingApp:
         touch_bus=1,
         camera_id=0,
         db_path="emotion_data.db",
+        no_touch=False,
     ):
         """Initialize the emotion lighting application"""
         logger.info("Initializing Emotion Lighting system...")
@@ -66,17 +67,29 @@ class EmotionLightingApp:
             self.led_controller = components["LEDController"](self.led_strip)
             logger.info("LED controller initialized.")
 
-            # Initialize sensors
-            self.touch_sensor = components["MPR121TouchSensor"](
-                touch_address, touch_bus
-            )
-            logger.info("Touch sensor initialized.")
+            # Initialize sensors and trackers conditionally based on no_touch flag
+            if no_touch:
+                logger.info("Touch sensor disabled by --no-touch flag.")
+                self.touch_sensor = None
+                self.touch_tracker = None
+            else:
+                try:
+                    # Initialize touch sensor
+                    self.touch_sensor = components["MPR121TouchSensor"](
+                        touch_address, touch_bus
+                    )
+                    logger.info("Touch sensor initialized.")
 
-            # Initialize trackers
-            self.touch_tracker = components["TouchTracker"](
-                self.database, self.led_controller, self.touch_sensor
-            )
-            logger.info("Touch tracker initialized.")
+                    # Initialize touch tracker
+                    self.touch_tracker = components["TouchTracker"](
+                        self.database, self.led_controller, self.touch_sensor
+                    )
+                    logger.info("Touch tracker initialized.")
+                except Exception as e:
+                    logger.error(f"Failed to initialize touch components: {e}")
+                    self.touch_sensor = None
+                    self.touch_tracker = None
+                    logger.info("Continuing without touch functionality.")
 
             self.emotion_tracker = components["EmotionTracker"](
                 self.database, self.led_controller, camera_id
@@ -119,7 +132,8 @@ class EmotionLightingApp:
         # Start components in order
         try:
             # Start trackers first
-            self.touch_tracker.start()
+            if self.touch_tracker:
+                self.touch_tracker.start()
             self.emotion_tracker.start()
 
             # Start web server last
@@ -157,7 +171,7 @@ class EmotionLightingApp:
             logger.info("Stopping trackers...")
             if hasattr(self, "emotion_tracker"):
                 self.emotion_tracker.stop()
-            if hasattr(self, "touch_tracker"):
+            if hasattr(self, "touch_tracker") and self.touch_tracker:
                 self.touch_tracker.stop()
 
             # LEDs last
@@ -206,6 +220,9 @@ def main():
     parser.add_argument(
         "--db", type=str, default="emotion_data.db", help="Database path"
     )
+    parser.add_argument(
+        "--no-touch", action="store_true", help="Disable touch sensor functionality"
+    )
 
     args = parser.parse_args()
 
@@ -221,15 +238,12 @@ def main():
             touch_bus=args.touch_bus,
             camera_id=args.camera,
             db_path=args.db,
+            no_touch=args.no_touch,
         )
 
         # Start the app
         app.start()
-    except ImportError as e:
-        logger.error(f"Import error: {e}")
-        if "customtkinter" in str(e):
-            logger.error("CustomTkinter is required but not installed.")
-            logger.error("Please install it with: pip install customtkinter")
+        
     except KeyboardInterrupt:
         logger.info("Application interrupted by user.")
     except Exception as e:
