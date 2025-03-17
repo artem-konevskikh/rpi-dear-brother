@@ -7,13 +7,14 @@ class LEDController:
 
     # Mapping emotions to colors (RGB)
     EMOTION_COLORS = {
-        "happy": (255, 255, 0),  # Yellow
-        "sad": (0, 0, 255),  # Blue
-        "angry": (255, 0, 0),  # Red
-        "neutral": (255, 255, 255),  # White
-        "fear": (128, 0, 128),  # Purple
-        "surprise": (0, 255, 255),  # Cyan
-        "disgust": (0, 128, 0),  # Green
+        "happy": (128, 128, 0),  # Yellow
+        "sad": (0, 0, 128),  # Blue
+        "angry": (128, 0, 0),  # Red
+        "neutral": (128, 128, 128),  # Light Gray
+        "fear": (64, 0, 64),  # Purple
+        "surprise": (0, 128, 128),  # Cyan
+        "disgust": (0, 64, 0),  # Green
+        "no_face": (128, 128, 128),  # White
     }
 
     # Default emotion
@@ -47,8 +48,18 @@ class LEDController:
                 emotion, self.EMOTION_COLORS[self.DEFAULT_EMOTION]
             )
 
-            # Update LED strip color (with short transition)
-            self.led_strip.change_color(color, steps=20)
+            # For 'no_face' emotion, use shimmer effect
+            if emotion == "no_face":
+                # Start shimmer in a separate thread to avoid blocking
+                shimmer_thread = threading.Thread(
+                    target=self.led_strip.shimmer,
+                    args=(color, 0.1),
+                    daemon=True
+                )
+                shimmer_thread.start()
+            else:
+                # Update LED strip color (with short transition)
+                self.led_strip.change_color(color, steps=20)
 
     def set_intensity(self, intensity):
         """Set the LED intensity/brightness
