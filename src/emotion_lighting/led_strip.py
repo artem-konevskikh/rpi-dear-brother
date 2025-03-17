@@ -1,5 +1,6 @@
 import time
 import random
+import math
 from pi5neo import Pi5Neo
 
 
@@ -49,13 +50,30 @@ class LedStrip:
         self._shimmer_active = True
         self.current_color = color
         
+        # Initialize each LED with a different phase to create more natural twinkling
+        led_phases = [random.random() for _ in range(self.neo.num_leds)]
+        led_speeds = [0.5 + random.random() for _ in range(self.neo.num_leds)]
+        
         while self._shimmer_active:
+            # Update each LED independently
             for led in range(self.neo.num_leds):
+                # Calculate a unique shimmer factor for each LED
+                # This creates a more dynamic effect where LEDs twinkle independently
+                shimmer_factor = 0.7 + 0.5 * (0.5 + 0.5 * math.sin(led_phases[led]))
+                
+                # Apply the shimmer factor to create a unique color for each LED
                 shimmer_color = tuple(
-                    max(0, min(255, int(c * (0.9 + 0.2 * random.random()))))
+                    max(0, min(255, int(c * shimmer_factor)))
                     for c in color
                 )
+                
+                # Update the LED with its unique color
                 self.neo.set_led_color(led, *shimmer_color)
+                
+                # Update the phase for this LED
+                led_phases[led] += 0.2 * led_speeds[led]
+            
+            # Update the entire strip at once
             self.neo.update_strip()
             time.sleep(speed)
 
