@@ -98,4 +98,27 @@ class LEDController:
     def clear(self):
         """Turn off all LEDs"""
         self.led_strip.clear()
-        self.current_intensity = 0.0
+        
+    def flash_touch_feedback(self):
+        """Change the LEDs to white when touched
+        
+        This method changes the LED color to white when the touch sensor is activated.
+        It does not return to the emotion color - that happens in return_from_touch().
+        """
+        with self.lock:
+            # Save current color and intensity for later use when returning from touch
+            self.saved_color = self.EMOTION_COLORS.get(
+                self.current_emotion, self.EMOTION_COLORS[self.DEFAULT_EMOTION]
+            )
+            self.saved_intensity = self.current_intensity
+            
+            # Change to white with quick transition
+            self.led_strip.change_color((255, 255, 255), steps=15)
+            
+    def return_from_touch(self):
+        """Return to the saved emotion color after touch is released"""
+        with self.lock:
+            if hasattr(self, 'saved_color') and hasattr(self, 'saved_intensity'):
+                # Return to saved emotion color
+                self.led_strip.change_color(self.saved_color, steps=10)
+                self.led_strip.set_intensity(self.saved_intensity)

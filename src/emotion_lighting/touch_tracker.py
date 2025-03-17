@@ -124,6 +124,11 @@ class TouchTracker:
 
                     # Update daily stats in database
                     self.database.update_daily_stats()
+                    
+                    # Return to emotion color when touch is released
+                    # Only do this if all electrodes are now released
+                    if sum(1 for t in touch_status if t) == 0:
+                        self.led_controller.return_from_touch()
 
         # Store current touches for next iteration
         if not hasattr(self.touch_sensor, "previous_touches"):
@@ -148,22 +153,8 @@ class TouchTracker:
 
         avg_duration = sum(durations) / len(durations) if durations else 0
 
-        # Update LED intensity based on touch activity
-        if avg_touches > 0 and self.intensity_cooldown == 0:
-            # Base intensity is 0.5 (50%)
-            base_intensity = 0.5
-
-            # Increase intensity by number of active touches (capped)
-            touch_factor = min(avg_touches / 6, 1.0) * 0.25  # Up to 25% increase
-
-            # Increase intensity by average duration (capped at 2 seconds)
-            duration_factor = min(avg_duration / 2.0, 1.0) * 0.25  # Up to 25% increase
-
-            new_intensity = base_intensity + touch_factor + duration_factor
-
-            # Ensure within bounds
-            new_intensity = max(0.1, min(1.0, new_intensity))
-
-            # Update LED strip intensity if significant change
-            self.led_controller.set_intensity(new_intensity)
+        # Change to white when touched (only if not already in touch state)
+        if avg_touches > 0 and sum(self.touch_sensor.previous_touches) == 0:
+            # Change to white when touched
+            self.led_controller.flash_touch_feedback()
             self.intensity_cooldown = 3  # Cooldown to prevent rapid changes
