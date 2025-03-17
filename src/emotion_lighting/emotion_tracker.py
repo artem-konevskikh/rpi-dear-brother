@@ -30,7 +30,7 @@ class EmotionTracker:
 
         # State tracking
         self.running = False
-        self.current_emotion = "neutral"
+        self.current_emotion = "no_face"
         self.emotion_start_time = 0
         self.emotion_confidence = 0.0
 

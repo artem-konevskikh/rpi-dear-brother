@@ -35,7 +35,7 @@ class EmotionWebServer:
 
         # Create FastAPI app with minimal settings
         self.app = FastAPI(
-            title="Emotion Lighting System",
+            title="Dear Brother, ...",
             description="Control and monitor the emotion lighting system",
             version="1.0.0",
             docs_url=None,  # Disable docs for production
@@ -75,7 +75,7 @@ class EmotionWebServer:
             if os.path.exists(html_path):
                 with open(html_path, "r") as f:
                     return f.read()
-            return "<html><head><title>Emotion Lighting</title></head><body><h1>Emotion Lighting System</h1><p>Web interface is being set up.</p></body></html>"
+            return "<html><head><title>Dear Brother, ...</title></head><body><h1>Dear Brother, ...</h1><p>Web interface is being set up.</p></body></html>"
 
         # Include API routes
         self.app.include_router(api_router)

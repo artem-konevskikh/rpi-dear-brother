@@ -155,6 +155,10 @@ document.addEventListener('DOMContentLoaded', function () {
         "disgust": {
             "color": "#008000", // Green
             "emoji": "(≧︿≦)"   // Disgusted face
+        },
+        "no_face": {
+            "color": "#808080", // Gray
+            "emoji": "(⋅⋅⋅)"   // Empty face
         }
     };
 

@@ -89,7 +89,8 @@ const emotionNames = {
         neutral: 'NEUTRAL',
         fear: 'FEAR',
         surprise: 'SURPRISE',
-        disgust: 'DISGUST'
+        disgust: 'DISGUST',
+        no_face: 'NO FACE'
     },
     ru: {
         happy: 'РАДОСТЬ',
@@ -98,7 +99,8 @@ const emotionNames = {
         neutral: 'НЕЙТРАЛЬНЫЙ',
         fear: 'СТРАХ',
         surprise: 'УДИВЛЕНИЕ',
-        disgust: 'ОТВРАЩЕНИЕ'
+        disgust: 'ОТВРАЩЕНИЕ',
+        no_face: 'НЕТ ЛИЦА'
     }
 };
 
