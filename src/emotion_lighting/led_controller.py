@@ -14,7 +14,7 @@ class LEDController:
         "fear": (64, 0, 64),  # Purple
         "surprise": (0, 128, 128),  # Cyan
         "disgust": (0, 64, 0),  # Green
-        "no_face": (128, 128, 128),  # White
+        "no_face": (64, 64, 128),  # Soft blue for shimmer effect
     }
 
     # Default emotion
@@ -62,6 +62,8 @@ class LEDController:
                 )
                 shimmer_thread.start()
             else:
+                # Stop any active shimmer effect before changing color
+                self.led_strip._shimmer_active = False
                 # Update LED strip color (with short transition)
                 self.led_strip.change_color(color, steps=20)
 
