@@ -43,6 +43,10 @@ class LEDController:
             emotion: Emotion string
         """
         with self.lock:
+            # Don't change color if we're in touch mode
+            if hasattr(self, 'in_touch_mode') and self.in_touch_mode:
+                return
+                
             self.current_emotion = emotion
             color = self.EMOTION_COLORS.get(
                 emotion, self.EMOTION_COLORS[self.DEFAULT_EMOTION]
@@ -106,19 +110,28 @@ class LEDController:
         It does not return to the emotion color - that happens in return_from_touch().
         """
         with self.lock:
-            # Save current color and intensity for later use when returning from touch
-            self.saved_color = self.EMOTION_COLORS.get(
-                self.current_emotion, self.EMOTION_COLORS[self.DEFAULT_EMOTION]
-            )
-            self.saved_intensity = self.current_intensity
+            # Set touch mode flag to prevent emotion tracker from changing colors
+            self.in_touch_mode = True
             
             # Change to white with quick transition
             self.led_strip.change_color((255, 255, 255), steps=15)
             
     def return_from_touch(self):
-        """Return to the saved emotion color after touch is released"""
+        """Return to the current emotion color after touch is released"""
         with self.lock:
-            if hasattr(self, 'saved_color') and hasattr(self, 'saved_intensity'):
-                # Return to saved emotion color
-                self.led_strip.change_color(self.saved_color, steps=10)
-                self.led_strip.set_intensity(self.saved_intensity)
+            # Clear touch mode flag to allow emotion tracker to change colors again
+            self.in_touch_mode = False
+            
+            # Use current emotion color instead of saved color
+            color = self.EMOTION_COLORS.get(
+                self.current_emotion, self.EMOTION_COLORS[self.DEFAULT_EMOTION]
+            )
+            
+            # Return to current emotion color
+            self.led_strip.change_color(color, steps=10)
+            
+            # Clean up any saved values if they exist
+            if hasattr(self, 'saved_color'):
+                delattr(self, 'saved_color')
+            if hasattr(self, 'saved_intensity'):
+                delattr(self, 'saved_intensity')

@@ -97,6 +97,9 @@ class TouchTracker:
         # Decrease cooldown counter
         if self.intensity_cooldown > 0:
             self.intensity_cooldown -= 1
+            
+        # Track if we're in touch mode
+        self.is_in_touch_mode = active_touches > 0
 
         # Process completed touches - check for electrodes that were previously touched but now released
         for i in range(12):
@@ -153,8 +156,16 @@ class TouchTracker:
 
         avg_duration = sum(durations) / len(durations) if durations else 0
 
-        # Change to white when touched (only if not already in touch state)
-        if avg_touches > 0 and sum(self.touch_sensor.previous_touches) == 0:
-            # Change to white when touched
-            self.led_controller.flash_touch_feedback()
-            self.intensity_cooldown = 3  # Cooldown to prevent rapid changes
+        # Change to white when touched and maintain it while touching
+        if active_touches > 0:
+            # If this is a new touch (wasn't touching before)
+            if sum(self.touch_sensor.previous_touches) == 0:
+                # Change to white when touched
+                self.led_controller.flash_touch_feedback()
+                self.intensity_cooldown = 3  # Cooldown to prevent rapid changes
+            # Even if already touching, ensure we maintain white color
+            # This prevents emotion tracker from changing the color while touching
+            elif self.intensity_cooldown == 0:
+                # Refresh the white color periodically to override any emotion changes
+                self.led_controller.flash_touch_feedback()
+                self.intensity_cooldown = 3  # Reset cooldown
