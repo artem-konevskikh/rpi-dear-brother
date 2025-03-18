@@ -19,7 +19,7 @@ def import_components():
     from emotion_lighting.mpr121_touch_sensor import MPR121TouchSensor
     from emotion_lighting.database import EmotionDatabase
     from emotion_lighting.led_controller import LEDController
-    from emotion_lighting.emotion_tracker import EmotionTracker
+    from emotion_lighting.emotion_tracker_simple import EmotionTracker
     from emotion_lighting.touch_tracker import TouchTracker
     from emotion_lighting.web_server import EmotionWebServer
 
