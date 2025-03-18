@@ -160,7 +160,7 @@ class EmotionTracker:
             face_height = face_box[3]
             
             # Filter out small faces (likely false detections)
-            min_face_size = min(self.frame_width, self.frame_height) * 0.15  # Face should be at least 15% of frame
+            min_face_size = min(self.frame_width, self.frame_height) * 0.15  # Face should be at least 12% of frame
             if face_width < min_face_size or face_height < min_face_size:
                 return None
 
@@ -170,7 +170,7 @@ class EmotionTracker:
             dominant_emotion, confidence = max(emotions.items(), key=lambda x: x[1])
             
             # Only return emotion if confidence is high enough
-            if confidence < 0.6:  # Increased confidence threshold
+            if confidence < 0.5:  # Reduced confidence threshold for better neutral detection
                 return None
                 
             return {"emotion": dominant_emotion, "confidence": confidence}
