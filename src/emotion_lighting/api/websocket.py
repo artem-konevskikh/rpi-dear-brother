@@ -15,7 +15,7 @@ class WebSocketManager:
     """WebSocket connection manager for real-time updates"""
 
     def __init__(
-        self, emotion_tracker, touch_tracker, database, update_interval: float = 0.25
+        self, emotion_tracker, touch_tracker, database, update_interval: float = 0.1
     ):
         """Initialize the WebSocket manager
 
