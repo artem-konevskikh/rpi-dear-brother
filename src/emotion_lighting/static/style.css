@@ -71,26 +71,7 @@ body {
   box-shadow: 2px 2px 5px rgba(var(--primary-rgb), 0.3);
 }
 
-.section-title::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
-  animation: scan-line 3s linear infinite;
-}
 
-@keyframes scan-line {
-  0% {
-    left: -100%;
-  }
-
-  100% {
-    left: 100%;
-  }
-}
 
 .grid-container {
   display: grid;
@@ -99,9 +80,7 @@ body {
   gap: var(--grid-gap);
   padding: var(--grid-gap);
   height: 480px;
-  max-height: 480px;
   width: 800px;
-  max-width: 800px;
   margin: 0 auto;
   flex-grow: 1;
   background-image: radial-gradient(circle at center, rgba(var(--primary-rgb), 0.05) 0%, transparent 70%);
@@ -260,56 +239,6 @@ body {
   z-index: -1;
 }
 
-/* Scan line effect - glitchy version */
-.scan-line {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: rgba(var(--primary-rgb), 0.3);
-  opacity: 0.4; /* More transparent */
-  z-index: 9999;
-  pointer-events: none;
-  animation: scan 8s steps(30, end) infinite;
-  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.2);
-  transform-origin: center;
-  filter: url('#glitch-filter');
-}
-
-@keyframes scan {
-  0% {
-    top: 0;
-    opacity: 0.2;
-    transform: scaleX(0.98) translateX(-1%);
-    height: 2px;
-  }
-  20% {
-    opacity: 0.5;
-    transform: scaleX(1) translateX(0);
-  }
-  40% {
-    opacity: 0.3;
-    transform: scaleX(1.03) translateX(1%);
-    height: 3px;
-  }
-  60% {
-    opacity: 0.4;
-    transform: scaleX(0.98) translateX(0);
-    height: 1px;
-  }
-  80% {
-    opacity: 0.2;
-    transform: scaleX(1.02) translateX(-0.5%);
-    height: 2px;
-  }
-  100% {
-    top: 480px;
-    opacity: 0.3;
-    transform: scaleX(1) translateX(0);
-    height: 2px;
-  }
-}
 
 /* Chart.js customization */
 canvas {

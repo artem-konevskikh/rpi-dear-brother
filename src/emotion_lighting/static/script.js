@@ -361,40 +361,6 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
-    // ----- SCAN LINE GLITCH EFFECT -----
-    function addScanLineGlitchEffect() {
-        // Cache the scan line element to avoid repeated DOM queries
-        const scanLine = document.querySelector('.scan-line');
-        if (!scanLine) {
-            console.warn('Scan line element not found');
-            return;
-        }
-        
-        // Create random glitches for the scan line
-        setInterval(() => {
-            // Random glitch effects with 30% probability
-            if (Math.random() > 0.7) {
-                // Apply random transform
-                const glitchX = (Math.random() * 2 - 1) * 1.5;
-                const glitchScale = 0.95 + Math.random() * 0.1;
-                const height = 1 + Math.random() * 3;
-                const opacity = 0.2 + Math.random() * 0.3;
-                
-                // Batch DOM updates
-                scanLine.style.cssText = `
-                    transform: scaleX(${glitchScale}) translateX(${glitchX}%);
-                    height: ${height}px;
-                    opacity: ${opacity};
-                `;
-                
-                // Reset after a short time
-                setTimeout(() => {
-                    scanLine.style.cssText = '';
-                }, 50 + Math.random() * 150);
-            }
-        }, 300);
-    }
-
     // ----- INITIALIZATION -----
     function initialize() {
         try {
@@ -402,10 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
             initEmotionChart();
 
             // Set initial face
-            drawEmotionFace('neutral');
-            
-            // Add scan line glitch effect
-            addScanLineGlitchEffect();
+            drawEmotionFace('no_face');
             
             // Apply current language
             updateLanguage();
