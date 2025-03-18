@@ -14,7 +14,7 @@ class LEDController:
         "fear": (64, 0, 64),  # Purple
         "surprise": (0, 128, 128),  # Cyan
         "disgust": (0, 64, 0),  # Green
-        "no_face": (64, 64, 128),  # Soft blue for shimmer effect
+        "no_face": (128, 128, 128),  # White
     }
 
     # Default emotion
@@ -53,26 +53,17 @@ class LEDController:
             )
 
             # For 'no_face' emotion, use shimmer effect
-            # if emotion == "no_face":
-            #     # Start shimmer in a separate thread to avoid blocking
-            #     shimmer_thread = threading.Thread(
-            #         target=self.led_strip.shimmer,
-            #         args=(color, 0.1),
-            #         daemon=True
-            #     )
-            #     shimmer_thread.start()
-            # else:
-            #     # Stop any active shimmer effect before changing color
-            #     self.led_strip._shimmer_active = False
-            #     # Update LED strip color (with short transition)
-            #     self.led_strip.change_color(color, steps=20)
-
-            shimmer_thread = threading.Thread(
-                target=self.led_strip.shimmer,
-                args=(color, 0.1),
-                daemon=True
-            )
-            shimmer_thread.start()
+            if emotion == "no_face":
+                # Start shimmer in a separate thread to avoid blocking
+                shimmer_thread = threading.Thread(
+                    target=self.led_strip.shimmer,
+                    args=(color, 0.1),
+                    daemon=True
+                )
+                shimmer_thread.start()
+            else:
+                # Update LED strip color (with short transition)
+                self.led_strip.change_color(color, steps=20)
 
     def set_intensity(self, intensity):
         """Set the LED intensity/brightness
