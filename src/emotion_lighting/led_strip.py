@@ -51,15 +51,14 @@ class LedStrip:
         self.current_color = color
         
         # Initialize each LED with a different phase to create more natural twinkling
-        led_phases = [random.random() for _ in range(self.neo.num_leds)]
-        led_speeds = [0.5 + random.random() for _ in range(self.neo.num_leds)]
+        led_phases = [random.uniform(0, 2 * math.pi) for _ in range(self.neo.num_leds)]
+        led_speeds = [random.uniform(0.3, 1.0) for _ in range(self.neo.num_leds)]
         
         while self._shimmer_active:
             # Update each LED independently
             for led in range(self.neo.num_leds):
-                # Calculate a unique shimmer factor for each LED
-                # This creates a more dynamic effect where LEDs twinkle independently
-                shimmer_factor = 0.7 + 0.5 * (0.5 + 0.5 * math.sin(led_phases[led]))
+                # Create a more pronounced shimmer effect (0.5 to 1.5 range)
+                shimmer_factor = 0.5 + math.sin(led_phases[led]) * 0.5
                 
                 # Apply the shimmer factor to create a unique color for each LED
                 shimmer_color = tuple(
@@ -70,8 +69,8 @@ class LedStrip:
                 # Update the LED with its unique color
                 self.neo.set_led_color(led, *shimmer_color)
                 
-                # Update the phase for this LED
-                led_phases[led] += 0.2 * led_speeds[led]
+                # Update the phase for this LED - increase the speed for more visible changes
+                led_phases[led] += 0.3 * led_speeds[led]
             
             # Update the entire strip at once
             self.neo.update_strip()
