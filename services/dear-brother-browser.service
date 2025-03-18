@@ -1,0 +1,16 @@
+[Unit]
+Description=Dear Brother Browser Kiosk
+After=dear-brother.service
+Wants=dear-brother.service
+
+[Service]
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/brother/.Xauthority
+ExecStartPre=/bin/sleep 60
+ExecStart=/usr/bin/chromium-browser --kiosk --no-first-run --incognito --noerrdialogs http://localhost:8000
+Restart=on-failure
+User=brother
+
+[Install]
+WantedBy=graphical.target
+

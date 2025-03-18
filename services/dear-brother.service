@@ -1,0 +1,12 @@
+[Unit]
+Description=Dear Brother App
+After=network.target
+
+[Service]
+ExecStart=/home/brother/rpi-dear-brother/.venv/bin/python -m src.emotion_lighting.main --led-count 216
+WorkingDirectory=/home/brother/rpi-dear-brother
+Restart=on-failure
+User=brother
+
+[Install]
+WantedBy=multi-user.target
