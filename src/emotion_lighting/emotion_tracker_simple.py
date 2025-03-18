@@ -39,7 +39,7 @@ class EmotionTracker:
         # Performance optimizations
         self.frame_width = 640  # Reduced resolution
         self.frame_height = 480  # Reduced resolution
-        self.process_every_n_frames = 3  # Process more frames for responsiveness
+        self.process_every_n_frames = 2  # Process more frames for faster response
         self.frame_counter = 0
         self.min_detection_interval = 0.1  # Detect emotions more frequently
 
@@ -85,7 +85,7 @@ class EmotionTracker:
 
         last_detection_time = 0
         consecutive_no_face_frames = 0
-        no_face_threshold = 3  # Reduced threshold for faster no_face detection
+        no_face_threshold = 2  # Reduced threshold for faster no_face detection
 
         try:
             while self.running:
@@ -127,8 +127,8 @@ class EmotionTracker:
 
                     last_detection_time = current_time
 
-                # Sleep to reduce CPU usage - shorter interval for responsiveness
-                time.sleep(0.02)
+                # Sleep to reduce CPU usage - minimal interval for faster response
+                time.sleep(0.01)
 
         except Exception as e:
             logger.error(f"Error in tracking loop: {e}")
