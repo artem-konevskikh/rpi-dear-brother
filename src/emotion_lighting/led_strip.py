@@ -58,7 +58,7 @@ class LedStrip:
             # Update each LED independently
             for led in range(self.neo.num_leds):
                 # Create a more pronounced shimmer effect (0.5 to 1.5 range)
-                shimmer_factor = 0.5 + math.sin(led_phases[led]) * 0.5
+                shimmer_factor = 0.7 + math.sin(led_phases[led]) * 0.5
                 
                 # Apply the shimmer factor to create a unique color for each LED
                 shimmer_color = tuple(
