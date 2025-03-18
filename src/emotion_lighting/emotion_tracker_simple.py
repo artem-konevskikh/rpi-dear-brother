@@ -160,16 +160,19 @@ class EmotionTracker:
             face_height = face_box[3]
             
             # Filter out small faces (likely false detections)
-            min_face_size = min(self.frame_width, self.frame_height) * 0.1  # Face should be at least 10% of frame
+            min_face_size = min(self.frame_width, self.frame_height) * 0.15  # Face should be at least 15% of frame
             if face_width < min_face_size or face_height < min_face_size:
                 return None
 
             emotions = face["emotions"]
 
-            # Find dominant emotion
-            dominant_emotion = max(emotions.items(), key=lambda x: x[1])[0]
-            confidence = emotions[dominant_emotion]
-
+            # Find dominant emotion with confidence threshold
+            dominant_emotion, confidence = max(emotions.items(), key=lambda x: x[1])
+            
+            # Only return emotion if confidence is high enough
+            if confidence < 0.6:  # Increased confidence threshold
+                return None
+                
             return {"emotion": dominant_emotion, "confidence": confidence}
 
         except Exception as e:
@@ -233,10 +236,10 @@ class EmotionTracker:
                         # Log emotion asynchronously to prevent blocking
                         self._log_emotion(self.current_emotion, self.emotion_confidence, duration)
 
-                    # Update to no_face state
+                    # Update to no_face state without logging it
                     self.current_emotion = "no_face"
                     self.emotion_confidence = 0.0
-                    # Don't update emotion_start_time for no_face state
+                    self.emotion_start_time = 0  # Reset start time for no_face state
 
                     # Update LED color for no_face state
                     self.led_controller.set_emotion_color("no_face")
