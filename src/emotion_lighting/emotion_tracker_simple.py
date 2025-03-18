@@ -115,9 +115,7 @@ class EmotionTracker:
                     if emotion_data:
                         # Process detected emotion - directly update without stability checks
                         self._process_emotion(emotion_data)
-                        consecutive_no_face_frames = (
-                            0  # Reset counter when face is detected
-                        )
+                        consecutive_no_face_frames = 0  # Reset counter when face is detected
                     else:
                         # No face detected
                         consecutive_no_face_frames += 1
@@ -149,14 +147,23 @@ class EmotionTracker:
             # Ensure frame is RGB (critical for accurate emotion detection)
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect emotions
+            # Detect emotions with minimum face size requirements
             result = self.detector.detect_emotions(rgb_frame)
 
             if not result:
                 return None
 
-            # Get the dominant emotion from the first face
+            # Get the first face and validate its detection
             face = result[0]
+            face_box = face["box"]
+            face_width = face_box[2]
+            face_height = face_box[3]
+            
+            # Filter out small faces (likely false detections)
+            min_face_size = min(self.frame_width, self.frame_height) * 0.1  # Face should be at least 10% of frame
+            if face_width < min_face_size or face_height < min_face_size:
+                return None
+
             emotions = face["emotions"]
 
             # Find dominant emotion
@@ -221,7 +228,7 @@ class EmotionTracker:
                 # Only change state if we're not already in no_face state
                 if self.current_emotion != "no_face":
                     # Log the duration of the previous emotion only if it was a real emotion
-                    if self.emotion_start_time > 0:
+                    if self.emotion_start_time > 0 and self.current_emotion != "no_face":
                         duration = time.time() - self.emotion_start_time
                         # Log emotion asynchronously to prevent blocking
                         self._log_emotion(self.current_emotion, self.emotion_confidence, duration)

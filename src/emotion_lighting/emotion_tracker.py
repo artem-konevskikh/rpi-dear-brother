@@ -165,14 +165,23 @@ class EmotionTracker:
             # Ensure frame is RGB (critical for accurate emotion detection)
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # Detect emotions
+            # Detect emotions with minimum face size requirements
             result = self.detector.detect_emotions(rgb_frame)
 
             if not result:
                 return None
 
-            # Get the dominant emotion from the first face
+            # Get the first face and validate its detection
             face = result[0]
+            face_box = face["box"]
+            face_width = face_box[2]
+            face_height = face_box[3]
+            
+            # Filter out small faces (likely false detections)
+            min_face_size = min(self.frame_width, self.frame_height) * 0.1  # Face should be at least 10% of frame
+            if face_width < min_face_size or face_height < min_face_size:
+                return None
+
             emotions = face["emotions"]
 
             # Find dominant emotion faster using numpy
